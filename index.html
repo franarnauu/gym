@@ -295,6 +295,12 @@ h3{font-size:18px;font-weight:650}
 .rest{background:var(--surface);color:var(--ink);border-top:1px solid var(--line)}
 .rest .btn{background:var(--surface2);color:var(--ink);border-color:transparent}
 .rest.end{background:var(--good);color:#04210C}
+.rest.over{background:var(--bad);color:#fff}
+.rest.end .btn,.rest.over .btn{background:rgba(0,0,0,.18);color:inherit}
+.rest{gap:8px;padding:10px 14px}
+.rest .num{min-width:82px;font-size:32px}
+.rest .btn.sm{padding:0 10px;min-width:44px}
+.rest .small{font-size:12.5px}
 .restline{background:var(--surface2)}
 .rirq{border-top:1px solid var(--line)}
 .toast{background:var(--surface2);color:var(--ink);box-shadow:0 6px 24px rgba(0,0,0,.35);top:calc(env(safe-area-inset-top,0px) + 10px)}
@@ -992,7 +998,7 @@ function vSession(){
     const d=ex(e.exId),hist=histOf(e.exId),last=hist.length?hist[hist.length-1]:null,sg0=suggest(e.exId,e.lo,e.hi,0,a.deload);
     const ssPrev=ei>0&&a.ex[ei-1].ss;
     if(e.sets.every(x=>x.done)&&UI.openEx!==ei){h+=`<button class="card fold" id="ex-${ei}" data-a="exopen" data-e="${ei}" aria-label="Ver ${esc(d.n)}"><span class="ok">${ICON.check.replace('width="20" height="20"','width="16" height="16"')}</span><span class="grow"><span class="t" style="font-weight:600">${esc(d.n)}</span><br><span class="small muted">${e.sets.map(x=>esc(x.w)+'×'+esc(x.r)).join(' · ')}</span></span><span class="muted">›</span></button>`;return}
-    h+=`<div class="card ${ei===curEx?'cur':''}" id="ex-${ei}">${e.ss||ssPrev||e.tec?`<div class="chips">${e.ss?`<span class="chip on">Superserie con ${esc(ex(a.ex[ei+1]?a.ex[ei+1].exId:'').n)}</span>`:''}${ssPrev?`<span class="chip on">Superserie · segunda parte</span>`:''}${e.tec?`<span class="chip warn">${esc(e.tec)}</span>`:''}</div>`:''}<div class="exh"><div class="grow"><h3>${esc(d.n)}</h3><div class="small muted">${e.sets.length} × ${e.lo}–${e.hi} reps · descanso ${mmss(e.rest)}</div></div><button class="btn sm" data-a="tech" data-v="${esc(e.exId)}">Técnica</button></div>`;
+    h+=`<div class="card ${ei===curEx?'cur':''}" id="ex-${ei}">${e.ss||ssPrev||e.tec?`<div class="chips">${e.ss?`<span class="chip on">Superserie con ${esc(ex(a.ex[ei+1]?a.ex[ei+1].exId:'').n)}</span>`:''}${ssPrev?`<span class="chip on">Superserie · segunda parte</span>`:''}${e.tec?`<span class="chip warn">${esc(e.tec)}</span>`:''}</div>`:''}<div class="exh"><div class="grow"><h3>${esc(d.n)}</h3><div class="small muted">${e.sets.length} × ${e.lo}–${e.hi} reps · descanso ${mmss(restTier(e)[3])} a ${mmss(restTier(e)[0])}</div></div><button class="btn sm" data-a="tech" data-v="${esc(e.exId)}">Técnica</button></div>`;
     {const fs=e.sets[0];if(!e.sets.some(x=>x.done))h+=warmBlock(a,e,ei,num(fs.w)??(sg0?sg0.w:(last?last.sets[0][0]:null)))}
     if(a.deload)h+='<div class="hint">Descarga: mismo peso de siempre, menos series y dejá 3–4 reps en reserva.</div>';
     else if(sg0&&sg0.top)h+=`<div class="hint up"><b>Objetivo: subí a ${fmtN(sg0.w)} kg × ${sg0.r}</b><br><span class="small muted">${sg0.easy?'La última vez te sobraron 3 o más reps':'La última vez llegaste a '+e.hi+' en todas'}</span></div>`;
@@ -1023,11 +1029,11 @@ function tickTimer(){
   const a=active(),el=$('#elapsed');if(a&&el)el.textContent=mmss((Date.now()-a.start)/1000)+' de entrenamiento';
   const r=$('#rest');if(!r)return;
   let left=UI.timer?(UI.timer.end-Date.now())/1000:null;
-  if(UI.timer&&left<=-20){UI.timer=null;left=null}
+  if(UI.timer&&left<=-900){const c=clone(active());closeRest(c);saveActive(c);left=null}
   const q=UI.rirAsk;
   if(!UI.timer&&!q){if(r.innerHTML){r.innerHTML='';r.dataset.k=''}return}
   const qs=q&&active()&&active().ex[q.ei]?active().ex[q.ei].sets[q.si]:null;
-  const end=!!UI.timer&&left<=0,key=[!!UI.timer,end,q?q.ei+'-'+q.si:'',qs?qs.rir:'',qs&&qs.as?qs.as.l+'x'+qs.as.n:''].join('|');
+  const end=!!UI.timer&&left<=0,over=!!UI.timer&&left<=-15,key=[!!UI.timer,end,over,UI.timer?UI.timer.total+'/'+(UI.timer.why||''):'',q?q.ei+'-'+q.si:'',qs?qs.rir:'',qs&&qs.as?qs.as.l+'x'+qs.as.n:''].join('|');
   if(r.dataset.k!==key||!r.firstChild){
     r.dataset.k=key;
     const al=qs&&qs.as?qs.as.l:0;
@@ -1035,9 +1041,10 @@ function tickTimer(){
       <div class="row">${[0,1,2,3,4].map(v=>`<button class="btn sm grow ${qs.rir===v?'sel':''}" data-a="rir" data-v="${v}">${v===0?'0 · fallo':v===4?'4+':v}</button>`).join('')}</div>
       <div class="row"><span class="small" style="width:64px"><b>¿Ayuda?</b></span>${['No','Poca','Media','Mucha'].map((t,v)=>`<button class="btn sm grow ${al===v?'sel':''}" data-a="asl" data-v="${v}">${t}</button>`).join('')}</div>
       ${al?`<div class="row between"><span class="small">Reps en las que te ayudaron</span><span class="step"><button data-a="asn" data-v="-1" aria-label="Menos">−</button><span>${qs.as.n}</span><button data-a="asn" data-v="1" aria-label="Más">+</button></span></div>`:''}</div>`:'')+
-      (UI.timer?`<div class="restline"><i id="rest-l"></i></div><div class="rest ${end?'end':''}"><span class="num" id="rest-n"></span><span class="grow small">${end?'¡A la barra!':'Descanso'}</span>${end?'':'<button class="btn sm" data-a="tadj" data-v="-15">−15</button><button class="btn sm" data-a="tadj" data-v="15">+15</button>'}<button class="btn sm" data-a="tskip">${end?'Cerrar':'Saltar'}</button></div>`:'');
+      (UI.timer?`<div class="restline"><i id="rest-l"></i></div><div class="rest ${over?'over':end?'end':''}" role="timer"><span class="num" id="rest-n"></span><span class="grow small" style="line-height:1.25"><b>${over?'Te estás pasando':end?'¡A la siguiente serie!':'Descanso '+mmss(UI.timer.total)}</b>${over||end?'':`<br><span style="opacity:.75">${esc(UI.timer.why||'según el ejercicio')}</span>`}</span>${end?'':'<button class="btn sm" data-a="tadj" data-v="-15" aria-label="15 segundos menos">−15</button><button class="btn sm" data-a="tadj" data-v="15" aria-label="15 segundos más">+15</button>'}<button class="btn sm" data-a="tskip">${end?'Listo':'Saltar'}</button></div>`:'');
+    if(end&&!over){try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
   }
-  const n=$('#rest-n');if(n)n.textContent=end?'0:00':mmss(left);
+  const n=$('#rest-n');if(n)n.textContent=left>0?mmss(left):'+'+mmss(-left);
   const l=$('#rest-l');if(l&&UI.timer)l.style.width=Math.max(0,Math.min(100,(1-left/(UI.timer.total||90))*100))+'%';
 }
 setInterval(tickTimer,500);
@@ -1047,10 +1054,24 @@ function scheduleBeep(sec){
   try{
     audio=audio||new (window.AudioContext||window.webkitAudioContext)();
     if(audio.state==='suspended')audio.resume();
-    [0,.25,.5].forEach(off=>{const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=880;g.gain.value=.15;o.connect(g);g.connect(audio.destination);const t0=audio.currentTime+Math.max(0,sec)+off;o.start(t0);o.stop(t0+.15);beepNodes.push(o)});
+    [[0,880],[.25,880],[.5,880],[30,660],[30.25,660],[60,660],[60.25,660],[60.5,660]].forEach(([off,fq])=>{if(sec+off<0)return;const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=fq;g.gain.value=.15;o.connect(g);g.connect(audio.destination);const t0=audio.currentTime+Math.max(0,sec+off);o.start(t0);o.stop(t0+.15);beepNodes.push(o)});
   }catch(e){}
 }
-function startRest(sec){UI.timer={end:Date.now()+sec*1000,total:sec};scheduleBeep(sec);tickTimer()}
+/* Descanso según el esfuerzo: más corto si sobraron reps, más largo si llegaste al fallo.
+   Piso de 60–90 s (por debajo se pierde rendimiento); techo de 3 min en los ejercicios pesados. */
+function restTier(e){const b=e.rest||90;return b>=120?[180,150,120,90]:b>=75?[120,105,90,75]:[90,75,60,60]}
+function restFor(e,st){const t=restTier(e);if(st&&st.as)return [t[0],'por la ayuda'];if(!st||st.rir==null)return [t[1],'se ajusta al marcar'];const r=Math.min(3,st.rir);return [t[r],['por llegar al fallo','te quedaba 1 rep','te quedaban 2','te sobraban 3 o más'][r]]}
+function saveTimer(){try{if(UI.timer)localStorage.setItem('gym.timer',JSON.stringify(UI.timer));else localStorage.removeItem('gym.timer')}catch(e){}}
+function closeRest(a){
+  if(UI.timer&&a){const ov=(Date.now()-UI.timer.end)/1000;if(ov>0){a.over=Math.round((a.over||0)+Math.min(ov,900))}a.rests=(a.rests||0)+1}
+  UI.timer=null;cancelBeep();saveTimer();
+}
+function startRest(e,st,ei,si){const [d,why]=restFor(e,st);UI.timer={start:Date.now(),end:Date.now()+d*1000,total:d,extra:0,why,ei,si};scheduleBeep(d);saveTimer();tickTimer()}
+function retime(a){
+  const t=UI.timer,q=UI.rirAsk;if(!t||!q||t.ei!==q.ei||t.si!==q.si)return;
+  const e=a.ex[q.ei],[d,why]=restFor(e,e.sets[q.si]);t.total=Math.max(15,d+t.extra);t.why=why;t.end=t.start+t.total*1000;
+  scheduleBeep((t.end-Date.now())/1000);saveTimer();
+}
 function saveActive(a,fast){put('active',a,fast?300:1500)}
 
 /* ---------- rutina ---------- */
@@ -1152,7 +1173,7 @@ function vProgreso(){
   h+='</div>';
   const bw=bwSeries();
   h+=`<div class="card"><h3>Peso corporal</h3>${bw.length?lineChart(bw.slice(-60),'kg'):'<div class="muted">Cargá tu peso desde Hoy para ver la curva.</div>'}</div>`;
-  if(ws.length)h+=`<div class="card"><h3>Últimos entrenamientos</h3><div class="list">${ws.slice(-8).reverse().map(w=>`<button class="li" data-a="wopen" data-v="${esc(w.id)}"><span class="grow"><span class="t">${esc(w.dayName||'Entrenamiento')}</span><br><span class="small muted">${fmtD(w.date,{weekday:'short',day:'numeric',month:'short'})}${w.manual?' · solo asistencia':' · '+(w.ex||[]).reduce((n,e)=>n+e.sets.length,0)+' series · '+Math.round((w.end-w.start)/6e4)+' min'+(w.fat?' · cansancio '+w.fat+'/5':'')}</span></span><span class="muted">›</span></button>`).join('')}</div></div>`;
+  if(ws.length)h+=`<div class="card"><h3>Últimos entrenamientos</h3><div class="list">${ws.slice(-8).reverse().map(w=>`<button class="li" data-a="wopen" data-v="${esc(w.id)}"><span class="grow"><span class="t">${esc(w.dayName||'Entrenamiento')}</span><br><span class="small muted">${fmtD(w.date,{weekday:'short',day:'numeric',month:'short'})}${w.manual?' · solo asistencia':' · '+(w.ex||[]).reduce((n,e)=>n+e.sets.length,0)+' series · '+Math.round((w.end-w.start)/6e4)+' min'+(w.fat?' · cansancio '+w.fat+'/5':'')+(w.over>=60?' · '+Math.round(w.over/60)+' min de descanso de más':'')}</span></span><span class="muted">›</span></button>`).join('')}</div></div>`;
   return h;
 }
 
@@ -1167,7 +1188,7 @@ function vTecnica(){
      <li><b>Primero lo que más querés mejorar.</b> Para el tamaño del músculo el orden casi no cambia el resultado; la fuerza sí sube más en lo que hacés primero.</li>
      <li><b>Mismo peso en todas las series</b> es lo más simple para medir el progreso. Subir el peso serie a serie (pirámide) dio el mismo crecimiento en estudios, así que es cuestión de gusto.</li>
      <li><b>Si las reps se caen del rango, bajá 5–10%</b> en las series siguientes, o descansá más.</li>
-     <li><b>Descanso:</b> más de 1 minuto rinde un poco más; pasar de 1 minuto y medio ya no suma para crecer. En los ejercicios pesados podés tomarte más para sostener el peso.</li>
+     <li><b>Descanso:</b> más de 1 minuto rinde un poco más; pasar de 1 minuto y medio ya no suma para crecer. El cronómetro te da entre 1 y 3 minutos según el ejercicio y el esfuerzo que marques: más si llegaste al fallo, menos si te sobraron reps.</li>
      <li><b>Ayuda de un compañero:</b> las reps forzadas no dieron más fuerza en estudios. Usalas poco y solo en la última serie; si te ayudan desde la primera, sobra peso.</li>
      <li><b>Drop set:</b> mismo crecimiento que las series normales en menos tiempo. Solo al final, en máquina o polea.</li></ul></details>`:''}
    <div class="card" id="lib-list">${libList(list)}</div>`;
@@ -1254,7 +1275,7 @@ function shPhase(s){
 function shFatigue(){return {title:'¿Qué tan cansado terminaste?',html:`<div class="small muted">Con esto la app detecta fatiga acumulada y te avisa cuándo conviene una descarga.</div><div class="list">${[1,2,3,4,5].map(v=>`<button class="li" data-a="fat" data-v="${v}"><span class="num" style="font-size:24px;width:28px">${v}</span><span class="grow t">${FAT[v]}</span><span class="muted">›</span></button>`).join('')}</div><button class="btn ghost block" data-a="fat" data-v="0">Guardar sin responder</button>`}}
 function shRenew(){const g=(profile()||{}).gym||{};const base=g.until&&g.until>today()?g.until:today();const d=pdate(base);d.setMonth(d.getMonth()+1);return {title:'Pase del gimnasio',html:`<div class="field"><label for="gy-name">Gimnasio</label><input class="inp" id="gy-name" value="${esc(g.name||'')}" placeholder="Nombre del gimnasio"></div><div class="field"><label for="gy-until">Pase libre válido hasta</label><input class="inp" id="gy-until" type="date" value="${esc(ymd(d))}"></div><div class="small muted">Te propongo un mes más desde el vencimiento actual. La app te avisa en Hoy cuando falten 7 días o menos.</div><button class="btn primary block" data-a="renewok">Guardar</button>`}}
 function shSummary(s){
-  return {title:'Entrenamiento guardado',html:`<div class="tiles"><div class="tile"><div class="num">${s.min}</div><div class="lbl">minutos</div></div><div class="tile"><div class="num">${s.sets}</div><div class="lbl">series</div></div><div class="tile"><div class="num">${s.reps}</div><div class="lbl">repeticiones</div></div></div><div class="small muted">${fmtN(Math.round(s.vol))} kg movidos en total.</div>${s.gt?`<div class="row"><span class="chip ${s.gm===s.gt?'good':s.gm>=s.gt/2?'':'warn'}">Objetivos logrados: ${s.gm} de ${s.gt} series</span></div>`:''}
+  return {title:'Entrenamiento guardado',html:`<div class="tiles"><div class="tile"><div class="num">${s.min}</div><div class="lbl">minutos</div></div><div class="tile"><div class="num">${s.sets}</div><div class="lbl">series</div></div><div class="tile"><div class="num">${s.reps}</div><div class="lbl">repeticiones</div></div></div><div class="small muted">${fmtN(Math.round(s.vol))} kg movidos en total.${s.over>=60?' Descansaste '+Math.round(s.over/60)+' min de más entre series.':s.sets>1?' Respetaste los descansos.':''}</div>${s.gt?`<div class="row"><span class="chip ${s.gm===s.gt?'good':s.gm>=s.gt/2?'':'warn'}">Objetivos logrados: ${s.gm} de ${s.gt} series</span></div>`:''}
     ${s.prs.length?`<div><div class="tag" style="margin-bottom:8px">Récords de hoy</div><div class="chips">${s.prs.map(p=>`<span class="chip good">${esc(p)}</span>`).join('')}</div></div>`:''}
     ${s.nextG&&s.nextG.length?`<div><div class="tag" style="margin-bottom:4px">Tus objetivos para la próxima vez</div><div class="list">${s.nextG.map(g=>`<div class="li"><span class="grow"><span class="t">${esc(g[0])}</span><br><span class="small muted">${g[2]?'Sube el peso':'Mismo peso, más reps'}</span></span><span class="num" style="font-size:16px;text-align:right">${esc(g[1])}</span></div>`).join('')}</div></div>`:''}
     <div class="muted small">${s.week} de ${s.goal} días esta semana.</div><button class="btn primary block" data-a="close">Listo</button>`};
@@ -1273,10 +1294,10 @@ function startDay(i){
   const pr=program(),d=pr.days[i],dl=isDeload();
   const a={start:Date.now(),date:today(),dayIdx:i,dayId:d.id,dayName:d.name,deload:dl,note:'',
     ex:d.ex.map(e=>({exId:e.exId,lo:e.lo,hi:e.hi,rest:e.rest||90,ss:e.ss?1:0,tec:e.tec||'',sets:Array.from({length:dl?Math.ceil(e.sets/2):e.sets},()=>({w:'',r:'',done:false}))}))};
-  UI.timer=null;UI.rirAsk=null;UI.openEx=null;UI.warm=0;put('active',a,0);UI.sheet=null;UI.tab='session';render();
+  UI.timer=null;saveTimer();UI.rirAsk=null;UI.openEx=null;UI.warm=0;put('active',a,0);UI.sheet=null;UI.tab='session';render();
 }
 function finish(fat){
-  const a=active(),prs=[];let sets=0,vol=0,reps=0,gm=0,gt=0;
+  const a=clone(active());closeRest(a);const prs=[];let sets=0,vol=0,reps=0,gm=0,gt=0;
   a.ex.forEach(e=>e.sets.forEach(x=>{if(x.done&&x.g!=null){gt++;gm+=x.g}}));
   const exs=a.ex.map(e=>({exId:e.exId,sets:e.sets.filter(s=>s.done).map(s=>{const r=Math.round(num(s.r)||0),an=s.as?Math.min(r,s.as.n||1):0;return [num(s.w)||0,r-an,s.rir==null?null:s.rir,an,an?s.as.l:0]}).filter(s=>s[1]>0||s[3]>0)})).filter(e=>e.sets.length);
   exs.forEach(e=>{
@@ -1285,11 +1306,11 @@ function finish(fat){
     e.sets.forEach(s=>{sets++;reps+=s[1];vol+=s[0]*s[1]});
   });
   const end=Date.now(),doneEx=a.ex.filter(e=>e.sets.some(x=>x.done));
-  put('w_'+a.start,{date:a.date,start:a.start,end,dayId:a.dayId,dayName:a.dayName,deload:!!a.deload,ex:exs,note:a.note||'',fat:fat||null,goals:gt?[gm,gt]:null,gym:((profile()||{}).gym||{}).name||''},0);
+  put('w_'+a.start,{date:a.date,start:a.start,end,dayId:a.dayId,dayName:a.dayName,deload:!!a.deload,ex:exs,note:a.note||'',fat:fat||null,over:a.over||0,goals:gt?[gm,gt]:null,gym:((profile()||{}).gym||{}).name||''},0);
   put('active',undefined,0);
   const pr=program();if(pr&&a.dayIdx!=null&&pr.days[a.dayIdx]&&pr.days[a.dayIdx].id===a.dayId)saveProgram(p=>p.next=(a.dayIdx+1)%p.days.length);
-  UI.timer=null;UI.rirAsk=null;cancelBeep();UI.tab='hoy';
-  UI.sheet={t:'summary',min:Math.max(1,Math.round((end-a.start)/6e4)),sets,reps,vol,prs,gm,gt,nextG:a.deload?[]:doneEx.map(e=>{const tg=e.sets.map((_,k)=>suggest(e.exId,e.lo,e.hi,k,false)).filter(Boolean);if(!tg.length)return null;const same=tg.every(x=>x.w===tg[0].w);return [ex(e.exId).n,same?fmtN(tg[0].w)+' kg × '+(tg.every(x=>x.r===tg[0].r)?tg[0].r+' en cada serie':tg.map(x=>x.r).join(', ')):tg.map(x=>fmtN(x.w)+'×'+x.r).join(' · '),tg[0].top]}).filter(Boolean),week:weekCount(monday(today())),goal:(profile()||{}).days||5};
+  UI.rirAsk=null;UI.tab='hoy';
+  UI.sheet={t:'summary',min:Math.max(1,Math.round((end-a.start)/6e4)),sets,reps,vol,prs,gm,gt,over:a.over||0,nextG:a.deload?[]:doneEx.map(e=>{const tg=e.sets.map((_,k)=>suggest(e.exId,e.lo,e.hi,k,false)).filter(Boolean);if(!tg.length)return null;const same=tg.every(x=>x.w===tg[0].w);return [ex(e.exId).n,same?fmtN(tg[0].w)+' kg × '+(tg.every(x=>x.r===tg[0].r)?tg[0].r+' en cada serie':tg.map(x=>x.r).join(', ')):tg.map(x=>fmtN(x.w)+'×'+x.r).join(' · '),tg[0].top]}).filter(Boolean),week:weekCount(monday(today())),goal:(profile()||{}).days||5};
   render();
 }
 const ACT={
@@ -1327,17 +1348,18 @@ const ACT={
       for(let k=si+1;k<e.sets.length;k++)if(!e.sets[k].done&&e.sets[k].w==='')e.sets[k].w=s.w;
       const more=a.ex.some(x=>x.sets.some(y=>!y.done)),nx=a.ex[ei+1];
       UI.rirAsk={ei,si};UI.justChk=ei+'-'+si;if(UI.openEx===ei&&e.sets.every(x=>x.done))UI.openEx=null;
-      if(e.ss&&nx&&nx.sets[si]&&!nx.sets[si].done){UI.timer=null;cancelBeep();toast('Superserie: seguí con '+ex(nx.exId).n+' sin descansar')}
-      else if(more)startRest(e.rest||90);
-    }else{s.done=false;delete s.rir;delete s.g;delete s.as;UI.rirAsk=null;UI.openEx=ei}
+      closeRest(a);
+      if(e.ss&&nx&&nx.sets[si]&&!nx.sets[si].done){toast('Superserie: seguí con '+ex(nx.exId).n+' sin descansar')}
+      else if(more)startRest(e,s,ei,si);
+    }else{s.done=false;delete s.rir;delete s.g;delete s.as;UI.rirAsk=null;UI.openEx=ei;if(UI.timer&&UI.timer.ei===ei&&UI.timer.si===si){UI.timer=null;cancelBeep();saveTimer()}}
     const fin=s.done&&e.sets.every(x=>x.done);
     saveActive(a,true);keepScroll(render);UI.justChk=null;
     if(fin){const nx=$('#ex-'+(ei+1));if(nx)try{nx.scrollIntoView({behavior:'smooth',block:'start'})}catch(_){}}
     try{if(s.done&&navigator.vibrate)navigator.vibrate(15)}catch(_){}
   },
   exopen(el){UI.openEx=+el.dataset.e;keepScroll(render)},
-  rir(el){const q=UI.rirAsk;if(!q)return;const a=clone(active()),st=a.ex[q.ei]&&a.ex[q.ei].sets[q.si];if(st)st.rir=+el.dataset.v;saveActive(a,true);keepScroll(render)},
-  asl(el){const q=UI.rirAsk;if(!q)return;const a=clone(active()),e=a.ex[q.ei],st=e&&e.sets[q.si];if(!st)return;const v=+el.dataset.v;if(v){st.as={n:st.as?st.as.n:1,l:v};st.rir=0}else delete st.as;regoal(a,q.ei,q.si);saveActive(a,true);keepScroll(render)},
+  rir(el){const q=UI.rirAsk;if(!q)return;const a=clone(active()),st=a.ex[q.ei]&&a.ex[q.ei].sets[q.si];if(st)st.rir=+el.dataset.v;retime(a);saveActive(a,true);keepScroll(render)},
+  asl(el){const q=UI.rirAsk;if(!q)return;const a=clone(active()),e=a.ex[q.ei],st=e&&e.sets[q.si];if(!st)return;const v=+el.dataset.v;if(v){st.as={n:st.as?st.as.n:1,l:v};st.rir=0}else delete st.as;regoal(a,q.ei,q.si);retime(a);saveActive(a,true);keepScroll(render)},
   asn(el){const q=UI.rirAsk;if(!q)return;const a=clone(active()),st=a.ex[q.ei]&&a.ex[q.ei].sets[q.si];if(!st||!st.as)return;st.as.n=Math.max(1,Math.min(Math.round(num(st.r)||1),st.as.n+(+el.dataset.v)));regoal(a,q.ei,q.si);saveActive(a,true);keepScroll(render)},
   askdone(){UI.rirAsk=null;tickTimer()},
   warm(el){const v=+el.dataset.e;UI.warm=UI.warm===v?-1:v;keepScroll(render)},
@@ -1355,15 +1377,15 @@ const ACT={
   tech(el){UI.sheet={t:'tech',id:el.dataset.v};renderSheet()},
   finish(){
     const a=active(),done=a.ex.reduce((n,e)=>n+e.sets.filter(s=>s.done).length,0),left=a.ex.reduce((n,e)=>n+e.sets.filter(s=>!s.done).length,0);
-    if(!done){UI.sheet={t:'confirm',title:'No marcaste ninguna serie',text:'Para guardar el entrenamiento marcá al menos una serie como hecha. ¿Querés descartarlo?',ok:'Descartar',danger:true,fn(){put('active',undefined,0);UI.timer=null;cancelBeep();UI.tab='hoy';render()}};renderSheet();return}
+    if(!done){UI.sheet={t:'confirm',title:'No marcaste ninguna serie',text:'Para guardar el entrenamiento marcá al menos una serie como hecha. ¿Querés descartarlo?',ok:'Descartar',danger:true,fn(){put('active',undefined,0);UI.timer=null;cancelBeep();saveTimer();UI.tab='hoy';render()}};renderSheet();return}
     if(left){UI.sheet={t:'confirm',title:'¿Terminar ahora?',text:'Te quedan '+left+' series sin marcar. Se guardan solo las series hechas.',ok:'Terminar y guardar',fn(){UI.sheet={t:'fatigue'};renderSheet()}};renderSheet();return}
     UI.sheet={t:'fatigue'};renderSheet();
   },
-  discard(){UI.sheet={t:'confirm',title:'¿Descartar el entrenamiento?',text:'Se pierde lo que cargaste en esta sesión. No se puede deshacer.',ok:'Descartar',danger:true,fn(){put('active',undefined,0);UI.timer=null;cancelBeep();UI.tab='hoy';render()}};renderSheet()},
+  discard(){UI.sheet={t:'confirm',title:'¿Descartar el entrenamiento?',text:'Se pierde lo que cargaste en esta sesión. No se puede deshacer.',ok:'Descartar',danger:true,fn(){put('active',undefined,0);UI.timer=null;cancelBeep();saveTimer();UI.tab='hoy';render()}};renderSheet()},
   fat(el){UI.sheet=null;finish(+el.dataset.v)},
   confirmok(){const f=UI.sheet.fn;UI.sheet=null;renderSheet();if(f)f()},
-  tadj(el){if(!UI.timer)return;UI.timer.end+=(+el.dataset.v)*1000;UI.timer.total=Math.max(15,(UI.timer.total||90)+(+el.dataset.v));scheduleBeep((UI.timer.end-Date.now())/1000);tickTimer()},
-  tskip(){UI.timer=null;cancelBeep();tickTimer()},
+  tadj(el){const t=UI.timer;if(!t)return;const v=+el.dataset.v;if(t.total+v<15)return;t.extra+=v;t.total+=v;t.end=t.start+t.total*1000;scheduleBeep((t.end-Date.now())/1000);saveTimer();tickTimer()},
+  tskip(){const a=clone(active());closeRest(a);saveActive(a,true);tickTimer()},
   phase(el){UI.sheet={t:'phase',i:+el.dataset.v};renderSheet()},
   phasego(el){
     if(active()){toast('Terminá el entrenamiento en curso antes de cambiar de fase');return}
@@ -1444,6 +1466,7 @@ if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceW
 document.addEventListener('touchmove',e=>{if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});
 /* ============ arranque ============ */
 loadLocal();
+try{const t=JSON.parse(localStorage.getItem('gym.timer')||'null');if(t&&S.docs.active&&Date.now()-t.end<9e5)UI.timer=t;else localStorage.removeItem('gym.timer')}catch(e){}
 if(active())UI.tab='hoy';
 render();
 initSync();

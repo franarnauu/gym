@@ -360,6 +360,15 @@ nav button svg,nav button span{position:relative}
 .strip{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}.strip::-webkit-scrollbar{display:none}
 .strip button{flex:none;width:64px;height:84px;border-radius:10px;overflow:hidden;background:var(--surface2)}
 .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.row>.field{align-self:flex-end}
+.field label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exh{flex-wrap:wrap;align-items:center;row-gap:6px}.exh>.grow{display:contents}.exh h3{font-size:17.5px;line-height:1.2;flex:0 0 100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.exh .small{flex:1;min-width:0}
+.btn.ic{padding:0 12px;min-width:44px}
+@media (max-width:360px){#sheet h2{font-size:20px}.exh h3{font-size:17px}.eyebrow{font-size:12.5px}}
+.top{display:block}.top>.row{margin:0 0 2px;gap:10px}.top .eyebrow{flex:1}.top>.row>:last-child{flex:none}
+.stk:empty{display:none}
 </style>
 </head>
 <body>
@@ -446,10 +455,10 @@ X('peso_muerto','Peso muerto','isquios',['gluteos','espalda'],'Barra',5,
 X('press_militar','Press militar con barra','hombros',['triceps'],'Barra',2.5,
  ['De pie, glúteos y abdomen apretados, barra sobre las clavículas.','Antebrazos verticales, agarre apenas fuera de los hombros.','Empujá en línea recta moviendo la cabeza hacia atrás y después adelante.','Terminá con la barra sobre la nuca y los brazos extendidos.'],
  ['Arquear la lumbar.','Empujar la barra hacia adelante.']);
-X('press_hombros_manc','Press de hombros con mancuernas','hombros',['triceps'],'Mancuernas',2,
+X('press_hombros_manc','Press de hombros (mancuernas)','hombros',['triceps'],'Mancuernas',2,
  ['Banco a 80–90°, espalda apoyada.','Mancuernas a la altura de las orejas, codos un poco adelante del torso.','Subí hasta casi extender sin chocar las mancuernas.','Bajá controlado hasta que las manos queden a la altura de la oreja.'],
  ['Recorrido corto.','Arquear la espalda y convertirlo en press inclinado.']);
-X('lat_manc','Elevaciones laterales con mancuernas','hombros',[],'Mancuernas',1,
+X('lat_manc','Elevaciones laterales (mancuernas)','hombros',[],'Mancuernas',1,
  ['Leve inclinación del torso hacia adelante, codos apenas flexionados.','Subí los brazos hacia los costados y un poco adelante, hasta la altura del hombro.','Pensá en alejar las manos del cuerpo, no en subirlas.','Bajá en 2–3 segundos.'],
  ['Encoger los trapecios.','Balancear el cuerpo.','Subir muy por encima del hombro.']);
 X('lat_polea','Elevaciones laterales en polea','hombros',[],'Polea',1.25,
@@ -774,6 +783,14 @@ const planIdx=()=>{const pr=program();return pr?PLAN.findIndex(x=>x.k===pr.prese
 function presetProgram(k,block){const p=PRESET[k];return {name:p.name,created:today(),block:block||0,focus:'equilibrado',preset:k,rev:3,byWeekday:true,days:p.days.map(([n,e])=>({id:uidx(),name:n.replace(WD,''),ex:clone(e)})),next:0,deload:null,past:[]}}
 const WD=/^(Lunes|Martes|Miércoles|Jueves|Viernes) · /;
 function nextIdx(){const pr=program();if(!pr)return 0;const mon=monday(today()),done={};workouts().forEach(w=>{if(w.date>=mon&&w.dayId)done[w.dayId]=1});const i=pr.days.findIndex(d=>!done[d.id]);return i>=0?i:pr.next%pr.days.length}
+function nextMonday(d){let x=addDays(monday(d),7);return x}
+function chkInfo(){const p=profile(),c=p&&p.chk;if(!c||!c.start)return null;const t=today(),ev=c.every||14;
+  const days=Math.round((pdate(t)-pdate(c.start))/864e5);
+  if(days<0)return {due:null,next:c.start};
+  const due=addDays(c.start,Math.floor(days/ev)*ev),next=addDays(due,ev);
+  const b=(S.docs.body&&S.docs.body.m)||[],hasM=b.some(x=>x.d>=due),hasP=(UI.photos||[]).some(x=>x.d>=due);
+  return {due,next,hasM,hasP,done:c.done===due||(hasM&&hasP)};
+}
 function gymInfo(){const g=(profile()||{}).gym;if(!g||!g.until)return g?{g,left:null}:null;return {g,left:Math.round((pdate(g.until)-pdate(today()))/864e5)}}
 const WARM={
  pecho:['Círculos de brazos, 10 hacia cada lado','Rotación externa de hombro con banda o polea liviana, 15 reps','Flexiones de brazos suaves, 8–10'],
@@ -798,7 +815,7 @@ function warmBlock(a,e,ei,ref){
   else if(ref)ramp=first?[fmtN(rd(ref*.5))+' kg × 6',fmtN(rd(ref*.8))+' kg × 4']:[fmtN(rd(ref*.6))+' kg × 6'];
   else ramp=first?['La mitad del peso × 6','80% del peso × 4']:['60% del peso × 6'];
   const open=UI.warm===ei;
-  return `<div class="warm"><button class="row between" data-a="warm" data-e="${ei}" aria-expanded="${open}" style="width:100%"><span class="t" style="font-weight:600">Calentamiento · ${ramp.length} ${ramp.length===1?'serie':'series'} de aproximación</span><span class="muted">${open?'−':'+'}</span></button>
+  return `<div class="warm"><button class="row between" data-a="warm" data-e="${ei}" aria-expanded="${open}" style="width:100%"><span class="t" style="font-weight:600">Calentamiento · ${ramp.length} ${ramp.length===1?'serie':'series'}</span><span class="muted">${open?'−':'+'}</span></button>
     ${open?`${first?'<div class="small muted">Antes de todo: 5 minutos de cardio suave para entrar en calor.</div>':''}
     <div><div class="tag">Movilidad opcional (${MUSC[d.m].toLowerCase()})</div><ul class="cues" style="margin-top:6px">${(WARM[d.m]||[]).map(x=>`<li>${x}</li>`).join('')}</ul></div>
     <div><div class="tag">Series de aproximación</div><div class="chips" style="margin-top:6px">${ramp.map(x=>`<span class="chip">${x}</span>`).join('')}</div><div class="small muted" style="margin-top:6px">Lejos del fallo: son para preparar, no para cansarte. No se anotan. En series de 10 o más reps los estudios no muestran que rindas más por calentar, así que ahí podés saltearlas.</div></div>`:''}</div>`;
@@ -892,6 +909,7 @@ const lastBw=()=>{const s=bwSeries();return s.length?s[s.length-1].v:null};
 function attended(){const set={};workouts().forEach(w=>set[w.date]=1);return set}
 function lastPain(exId){const ws=workouts();for(let i=ws.length-1;i>=0;i--){const e=(ws[i].ex||[]).find(x=>x.exId===exId);if(e)return e.pain||0}return 0}
 function histOf(exId){const out=[];workouts().forEach(w=>(w.ex||[]).forEach(e=>{if(e.exId===exId&&e.sets&&e.sets.length)out.push({date:w.date,sets:e.sets})}));return out}
+const dnm=n=>{const m=/^(.*?)\s*\(([^)]*)\)(.*)$/.exec(n||'');return m?[(m[1]+m[3]).trim(),m[2].charAt(0).toUpperCase()+m[2].slice(1)]:[n||'','']};
 const e1rm=(w,r)=>r<=0?0:r<=1?w:w*(1+r/30);
 const fmtSet=x=>fmtN(x[0])+'×'+x[1]+(x[3]?'+'+x[3]+'a':'');
 const ASL=['','poca','media','mucha'];
@@ -920,19 +938,40 @@ function platesFor(total){const bar=(profile()||{}).bar||20;let side=(total-bar)
 const MEAS=[['brazo','Brazo'],['pecho','Pecho'],['cintura','Cintura'],['muslo','Muslo']];
 let phDb=null;
 function phOpen(){return new Promise(res=>{if(phDb)return res(phDb);try{const r=indexedDB.open('gym-fotos',1);r.onupgradeneeded=()=>r.result.createObjectStore('f',{keyPath:'id'});r.onsuccess=()=>{phDb=r.result;res(phDb)};r.onerror=()=>res(null)}catch(e){res(null)}})}
-async function phLoad(){const db=await phOpen();if(!db){UI.photos=[];return}
-  await new Promise(res=>{const rq=db.transaction('f').objectStore('f').getAll();rq.onsuccess=()=>{(UI.photos||[]).forEach(x=>{try{URL.revokeObjectURL(x.url)}catch(e){}});UI.photos=rq.result.sort((a,b)=>a.id-b.id).map(x=>({id:x.id,d:x.d,url:URL.createObjectURL(x.blob)}));res()};rq.onerror=()=>{UI.photos=[];res()}})}
+async function phAll(){const db=await phOpen();if(!db)return [];return new Promise(res=>{const rq=db.transaction('f').objectStore('f').getAll();rq.onsuccess=()=>res(rq.result||[]);rq.onerror=()=>res([])})}
+async function phPut(rec){const db=await phOpen();if(!db)throw new Error('db');return new Promise((res,rej)=>{const tx=db.transaction('f','readwrite');tx.objectStore('f').put(rec);tx.oncomplete=res;tx.onerror=rej})}
+async function phLoad(){const all=await phAll();(UI.photos||[]).forEach(x=>{try{URL.revokeObjectURL(x.url)}catch(e){}});UI.photos=all.sort((a,b)=>a.id-b.id).map(x=>({id:x.id,d:x.d,fid:x.fid||null,url:URL.createObjectURL(x.blob)}))}
+const b64of=blob=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(blob)});
+const blobOf=b64=>{const bin=atob(b64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new Blob([u],{type:'image/jpeg'})};
+/* Respaldo en Drive: sube las que faltan, baja las que no están en este dispositivo y borra las eliminadas en otro. */
+let phBusy=false;
+async function phSync(){
+  if(!S.col||phBusy)return;phBusy=true;let changed=false;UI.phErr=null;
+  try{
+    const remote=(await api({op:'photo_list'})).items||[],rById={};remote.forEach(r=>rById[r.id]=r);
+    const local=await phAll(),lById={};local.forEach(x=>lById[x.id]=x);
+    for(const x of local){
+      if(!x.fid&&rById[x.id]){x.fid=rById[x.id].fid;await phPut(x);changed=true}
+      else if(!x.fid){const j=await api({op:'photo_put',id:x.id,d:x.d,data:await b64of(x.blob)});x.fid=j.fid;await phPut(x);changed=true}
+      else if(!rById[x.id]){const db=await phOpen();await new Promise(res=>{const tx=db.transaction('f','readwrite');tx.objectStore('f').delete(x.id);tx.oncomplete=res;tx.onerror=res});changed=true}
+    }
+    for(const r of remote){if(!lById[r.id]){const j=await api({op:'photo_get',fid:r.fid});await phPut({id:r.id,d:r.d,fid:r.fid,blob:blobOf(j.data)});changed=true}}
+  }catch(e){UI.phErr=String(e&&e.message||e)}
+  phBusy=false;
+  if(changed||UI.phErr){await phLoad();if(UI.tab==='progreso')softRender()}
+}
 async function phAdd(file){
-  const db=await phOpen();if(!db){toast('Este navegador no deja guardar fotos');return}
   try{
     const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=URL.createObjectURL(file)});
     const k=Math.min(1,1280/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);
     const blob=await new Promise(res=>c.toBlob(res,'image/jpeg',.82));
-    await new Promise((res,rej)=>{const tx=db.transaction('f','readwrite');tx.objectStore('f').put({id:Date.now(),d:today(),blob});tx.oncomplete=res;tx.onerror=rej});
-    await phLoad();toast('Foto guardada');render();
+    await phPut({id:Date.now(),d:today(),fid:null,blob});
+    await phLoad();toast(S.col?'Foto guardada; subiendo a tu Drive…':'Foto guardada en este teléfono');render();phSync();
   }catch(e){toast('No se pudo guardar la foto')}
 }
-async function phDelete(id){const db=await phOpen();if(!db)return;await new Promise(res=>{const tx=db.transaction('f','readwrite');tx.objectStore('f').delete(id);tx.oncomplete=res;tx.onerror=res});await phLoad()}
+async function phDelete(id){const all=await phAll(),x=all.find(y=>y.id===id);const db=await phOpen();if(!db)return;
+  if(x&&x.fid&&S.col){try{await api({op:'photo_del',fid:x.fid})}catch(e){toast('Sin conexión: no se pudo borrar de Drive');return}}
+  await new Promise(res=>{const tx=db.transaction('f','readwrite');tx.objectStore('f').delete(id);tx.oncomplete=res;tx.onerror=res});await phLoad()}
 /* ============ estado de interfaz ============ */
 const UI={tab:'hoy',sheet:null,calMonth:today().slice(0,7),progEx:null,libQ:'',libM:'',timer:null,rirAsk:null,warm:0,progM:'e1',gen:{kind:'auto',days:5,focus:'equilibrado'}};
 let audio=null,beepNodes=[];
@@ -944,6 +983,7 @@ function render(){
   const p=profile(),main=$('#main'),nav=$('#nav');
   if(!p){nav.style.display='none';main.innerHTML=S.mode==='cargando'?'<div class="wrap">'+head('Un momento','Cargando tus datos')+'</div>':(!cfg()&&!UI.skipSetup?vSetup():vOnboard());renderSheet();setSync();return}
   if(S.mode!=='cargando'&&!program())put('program',presetProgram('franopt',0),0);
+  if(S.mode!=='cargando'&&!p.chk){const n=clone(p);n.chk={start:nextMonday(today()),every:14};put('profile',n)}
   if(S.mode!=='cargando'&&program()&&PRESET[program().preset]&&(program().rev||0)<3&&program().preset!=='fran')saveProgram(p=>{const src=PRESET[p.preset].days;p.days.forEach((d,i)=>{if(src[i])d.ex=clone(src[i][1])});p.rev=3});
   if(S.mode!=='cargando'&&program()&&program().days.some(d=>WD.test(d.name)))saveProgram(p=>p.days.forEach(d=>d.name=d.name.replace(WD,'')));
   keepAwake(UI.tab==='session'&&!!active());
@@ -957,7 +997,7 @@ function render(){
   renderSheet();setSync();
 }
 const syncEl=()=>`<span id="sync" class="sync" role="status"><i></i><span></span></span>`;
-function head(eyebrow,title){return `<div class="top"><div><div class="eyebrow">${esc(eyebrow)}</div><h1>${esc(title)}</h1></div>${syncEl()}</div>`}
+function head(eyebrow,title){return `<div class="top"><div class="row between"><div class="eyebrow one">${esc(eyebrow)}</div>${syncEl()}</div><h1 class="one">${esc(title)}</h1></div>`}
 
 function vSetup(){
   return `<div class="wrap">${head('Primera vez en este dispositivo','Conectar')}
@@ -987,16 +1027,17 @@ function weekStrip(){
 }
 function vHoy(){
   const p=profile(),pr=program(),t=today(),act=active(),goal=p.days||5,wc=weekCount(monday(t)),wk=blockWeek(),ld=logDay(t);
-  let h=head(fmtD(t,{weekday:'long',day:'numeric',month:'long'}),p.name?'Hola, '+p.name:'Hola');
+  let h=head(fmtD(t,{weekday:'long',day:'numeric',month:'long'}),p.name?'Hola, '+String(p.name).trim().split(/\s+/)[0]:'Hola');
   if(act){
-    h+=`<div class="card hero"><div class="eyebrow">Entrenamiento en curso</div><h2>${esc(act.dayName)}</h2><div class="muted small">Empezó ${new Date(act.start).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})} · ${act.ex.reduce((n,e)=>n+e.sets.filter(s=>s.done).length,0)} series hechas</div><button class="btn inv block" data-a="resume">Continuar</button></div>`;
+    h+=`<div class="card hero"><div class="eyebrow">Entrenamiento en curso</div><h2>${esc(dnm(act.dayName)[0])}</h2><div class="muted small">Empezó ${new Date(act.start).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})} · ${act.ex.reduce((n,e)=>n+e.sets.filter(s=>s.done).length,0)} series hechas</div><button class="btn inv block" data-a="resume">Continuar</button></div>`;
   }else if(pr){
     const ni=nextIdx(),d=pr.days[ni],did=attended()[t];
     h+=`<div class="card hero"><div class="row between"><div class="eyebrow">${did?'Ya entrenaste hoy · sigue el':'Te toca el'} día ${ni+1} de ${pr.days.length}</div><div class="eyebrow">${planIdx()>=0?esc(pr.name.split(' · ')[0])+' · ':''}Semana ${wk}${planIdx()>=0?' de '+PLAN[planIdx()].w:''}${isDeload()?' · descarga':''}</div></div>
-      <h2>${esc(d.name)}</h2><div class="muted small">${d.ex.length} ejercicios · ${d.ex.reduce((n,e)=>n+e.sets,0)} series · ${esc(d.ex.slice(0,3).map(e=>ex(e.exId).n).join(', '))}…</div>
+      <h2>${esc(dnm(d.name)[0])}</h2><div class="muted small">${dnm(d.name)[1]?esc(dnm(d.name)[1])+' · ':''}${d.ex.length} ejercicios · ${d.ex.reduce((n,e)=>n+e.sets,0)} series</div>
       <div class="row"><button class="btn inv grow" data-a="start" data-v="${ni}">Empezar entrenamiento</button><button class="btn hero2" data-a="pickday" aria-label="Elegir otro día">Otro día</button></div></div>`;
   }
-  const gi=gymInfo();
+  const gi=gymInfo(),ck=chkInfo();
+  if(ck&&ck.due&&!ck.done)h+=`<div class="banner" style="background:var(--accent-soft)"><div><b>Toca control de progreso.</b> Cada dos semanas: foto, medidas y peso, a la mañana y antes de entrenar.</div><div class="chips"><span class="chip ${ck.hasP?'good':''}">${ck.hasP?'Foto lista':'Falta la foto'}</span><span class="chip ${ck.hasM?'good':''}">${ck.hasM?'Medidas listas':'Faltan las medidas'}</span></div><div class="row wrapx"><label class="btn sm primary" style="cursor:pointer">Sacar foto<input type="file" accept="image/*" data-in="photo" hidden></label><button class="btn sm" data-a="measure">Cargar medidas y peso</button><button class="btn sm ghost" data-a="chkdone" data-v="${ck.due}">Ya está</button></div></div>`;
   if(gi&&gi.left!=null&&gi.left<=7)h+=`<div class="banner" style="${gi.left<0?'background:var(--bad-soft)':''}"><div><b>${gi.left<0?'Tu pase libre venció el '+fmtD(gi.g.until):gi.left===0?'Tu pase libre vence hoy':'Tu pase libre vence en '+gi.left+(gi.left===1?' día':' días')}.</b> ${esc(gi.g.name||'')}${gi.left>=0?' · hasta el '+fmtD(gi.g.until,{weekday:'long',day:'numeric',month:'long'}):''}</div><div class="row wrapx"><button class="btn sm" data-a="renew">Ya renové</button></div></div>`;
   const lastW=workouts().filter(w=>!w.manual&&w.fat).slice(-3);
   if(!act&&!isDeload()&&lastW.length===3&&lastW.every(w=>w.fat>=4))h+=`<div class="banner"><div><b>Terminaste muy cansado tus últimos 3 entrenamientos.</b> Es señal de fatiga acumulada: una semana de descarga te va a rendir más que seguir empujando.</div><div class="row wrapx"><button class="btn sm" data-a="deload">Hacer descarga esta semana</button></div></div>`;
@@ -1004,17 +1045,17 @@ function vHoy(){
   if(ph&&!act&&wk>ph.w)h+=`<div class="banner" style="background:var(--good-soft)"><div><b>Terminaste las ${ph.w} semanas de la ${esc(pr.name)}.</b> Te toca la ${esc(PRESET[nxp.k].name)}: ${esc(nxp.d)}</div><div class="row wrapx"><button class="btn sm primary" data-a="phasego" data-v="${(pi+1)%PLAN.length}">Empezar ${esc(PRESET[nxp.k].name.split(' · ')[0])}</button><button class="btn sm" data-a="phase" data-v="${(pi+1)%PLAN.length}">Ver qué trae</button></div></div>`;
   else if(ph&&!act&&wk===ph.w&&!isDeload())h+=`<div class="banner"><div><b>Última semana de la ${esc(pr.name)}.</b> Hacela de descarga (mitad de series, lejos del fallo) y la semana que viene arrancás la ${esc(PRESET[nxp.k].name)} recuperado.</div><div class="row wrapx"><button class="btn sm" data-a="deload">Hacer descarga esta semana</button></div></div>`;
   if(!ph&&pr&&!act&&wk>=7&&!isDeload())h+=`<div class="banner"><div><b>Llevás ${wk} semanas con esta rutina.</b> Si venís cansado o estancado, una semana de descarga (mitad de series, lejos del fallo) ayuda a recuperar. Después de 8 a 12 semanas conviene generar una rutina nueva.</div><div class="row wrapx"><button class="btn sm" data-a="deload">Hacer descarga esta semana</button><button class="btn sm" data-a="genopen">Generar rutina nueva</button></div></div>`;
-  h+=`<div class="grid2"><div class="card"><div class="row between"><div><h3>Esta semana</h3><div class="small muted">${(()=>{const rem=goal-wc,left=7-(new Date().getDay()+6)%7-(attended()[t]?1:0);return rem<=0?'Objetivo de '+goal+' días cumplido':left>=rem?'Te faltan '+rem+' y quedan '+left+(left===1?' día':' días')+' en la semana':'Esta semana llegás a '+(wc+left)+' como máximo'})()}</div></div>${ring(wc,goal)}</div>${weekStrip()}
+  h+=`<div class="grid2"><div class="card"><div class="row between"><div><h3>Esta semana</h3><div class="small muted">${(()=>{const rem=goal-wc,left=7-(new Date().getDay()+6)%7-(attended()[t]?1:0);return rem<=0?'Objetivo de '+goal+' días cumplido':left>=rem?'Faltan '+rem+' · quedan '+left+(left===1?' día':' días'):'Llegás a '+(wc+left)+' como máximo'})()}</div></div>${ring(wc,goal)}</div>${weekStrip()}
     ${!attended()[t]&&!act?'<button class="btn sm ghost" data-a="manual">Fui hoy sin registrar</button>':''}</div>`;
   h+=`<div class="card"><div class="row between"><h3>Hábitos de hoy</h3><button class="btn sm ghost" data-a="tab" data-v="perfil">Editar</button></div>`;
   supps().forEach(s=>{const on=(ld.s||{})[s.id],st=suppStreak(s.id);h+=`<button class="sup ${on?'on':''}" data-a="supp" data-v="${esc(s.id)}" aria-pressed="${on?'true':'false'}"><span class="box">${on?ICON.check:''}</span><span class="grow"><span class="t" style="font-weight:600">${esc(s.name)}</span> <span class="muted" style="white-space:nowrap">${esc(s.dose||'')}</span></span><span class="num stk">${st?st+' d':''}</span></button>`});
-  {const st=habStreak(d=>d.pr);h+=`<button class="sup ${ld.pr?'on':''}" data-a="habpr" aria-pressed="${ld.pr?'true':'false'}"><span class="box">${ld.pr?ICON.check:''}</span><span class="grow"><span class="t" style="font-weight:600">Proteína en cada comida</span><br><span class="small muted">Carne, pollo, huevos o lácteos</span></span><span class="num stk">${st?st+' d':''}</span></button>`}
+  {const st=habStreak(d=>d.pr);h+=`<button class="sup ${ld.pr?'on':''}" data-a="habpr" aria-pressed="${ld.pr?'true':'false'}"><span class="box">${ld.pr?ICON.check:''}</span><span class="grow"><span class="t" style="font-weight:600">Proteína</span><br><span class="small muted">En cada comida de hoy</span></span><span class="num stk">${st?st+' d':''}</span></button>`}
   {const st=habStreak(d=>d.sl>=7);h+=`<div class="sup ${ld.sl>=7?'on':''}"><span class="grow"><span class="t" style="font-weight:600">Sueño de anoche</span><br><span class="small muted">${ld.sl?(ld.sl>=7?'7 horas o más':'Menos de 7 horas'):'Horas dormidas'}${st?' · racha '+st+' d':''}</span></span><span class="step"><button data-a="hab" data-k="sl" data-v="-0.5" aria-label="Menos horas">−</button><span style="min-width:44px">${ld.sl?fmtN(ld.sl)+' h':'—'}</span><button data-a="hab" data-k="sl" data-v="0.5" aria-label="Más horas">+</button></span></div>`}
-  {const st=habStreak(d=>d.cd>0);h+=`<div class="sup ${ld.cd>0?'on':''}"><span class="grow"><span class="t" style="font-weight:600">Cardio o caminata</span><br><span class="small muted">Minutos de hoy${st?' · racha '+st+' d':''}</span></span><span class="step"><button data-a="hab" data-k="cd" data-v="-10" aria-label="Menos minutos">−</button><span style="min-width:44px">${ld.cd?ld.cd+"'":'—'}</span><button data-a="hab" data-k="cd" data-v="10" aria-label="Más minutos">+</button></span></div>`}
+  {let wk=0;for(let i=0;i<7;i++)wk+=logDay(addDays(monday(t),i)).cd||0;h+=`<div class="sup ${ld.cd>0?'on':''}"><span class="grow"><span class="t" style="font-weight:600">Cardio o caminata</span><br><span class="small muted">Esta semana: ${wk} min${ld.st?' · hoy '+Math.round(ld.st).toLocaleString('es-AR')+' pasos':''}</span></span><span class="step"><button data-a="hab" data-k="cd" data-v="-10" aria-label="Menos minutos">−</button><span style="min-width:44px">${ld.cd?Math.round(ld.cd)+"'":'—'}</span><button data-a="hab" data-k="cd" data-v="10" aria-label="Más minutos">+</button></span></div>`}
   h+='</div></div>';
   const bw=lastBw();
-  h+=`<div class="grid2"><div class="card"><div class="row"><div class="grow"><h3>Peso corporal</h3><div class="small muted">${bw!=null?'Último: '+fmtN(bw)+' kg':'En ayunas, a la mañana'}</div></div><input class="inp" id="bw-in" inputmode="decimal" placeholder="kg" value="${ld.bw!=null?fmtN(ld.bw):''}" aria-label="Peso de hoy en kg" style="width:84px;text-align:center"><button class="btn" data-a="bw">Guardar</button></div></div>`;
-  h+=gi?`<div class="card"><div class="row"><div class="grow"><h3>${esc(gi.g.name||'Mi gimnasio')}</h3><div class="small muted">${gi.g.until?'Pase hasta el '+fmtD(gi.g.until,{day:'numeric',month:'long'}):'Sin vencimiento cargado'}</div></div>${gi.left==null?'':`<span class="chip ${gi.left<0?'':gi.left<=7?'warn':'good'}" ${gi.left<0?'style="background:var(--bad-soft);color:var(--bad);border-color:transparent"':''}>${gi.left<0?'Vencido':gi.left===0?'Vence hoy':gi.left+(gi.left===1?' día':' días')}</span>`}<button class="btn sm" data-a="renew">Renovar</button></div></div>`:'';
+  h+=`<div class="grid2"><div class="card"><div class="row"><div class="grow"><h3 class="one">Peso</h3><div class="small muted one">${bw!=null?'Último: '+fmtN(bw)+' kg':'En ayunas'}</div></div><input class="inp" id="bw-in" inputmode="decimal" placeholder="kg" value="${ld.bw!=null?fmtN(ld.bw):''}" aria-label="Peso de hoy en kg" style="width:84px;text-align:center"><button class="btn" data-a="bw">Guardar</button></div></div>`;
+  h+=gi?`<div class="card"><div class="row"><div class="grow"><h3 class="one">${esc(gi.g.name||'Mi gimnasio')}</h3><div class="small one" style="color:${gi.left==null||gi.left>7?'var(--muted)':gi.left<0?'var(--bad)':'var(--warn,var(--accent))'}">${gi.g.until?(gi.left<0?'Pase vencido':gi.left===0?'El pase vence hoy':'Pase: '+(gi.left===1?'queda 1 día':'quedan '+gi.left+' días')+' · '+fmtD(gi.g.until,{day:'numeric',month:'short'})):'Sin vencimiento'}</div></div><button class="btn sm" data-a="renew">Renovar</button></div></div>`:'';
   h+='</div>';
   return h;
 }
@@ -1022,7 +1063,7 @@ function vHoy(){
 /* ---------- sesión ---------- */
 function vSession(){
   const a=active(),tot=a.ex.reduce((n,e)=>n+e.sets.length,0),dn=a.ex.reduce((n,e)=>n+e.sets.filter(x=>x.done).length,0);
-  let h=`<div id="session" style="display:flex;flex-direction:column;height:100%"><div class="sbar"><button class="x" data-a="minimize" aria-label="Volver sin terminar">${ICON.x}</button><div class="grow"><div class="t" style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.dayName)}</div><div class="small muted">${a.deload?'Semana de descarga · ':''}<span id="elapsed"></span></div></div><button class="btn primary sm" data-a="finish">Terminar</button></div>
+  let h=`<div id="session" style="display:flex;flex-direction:column;height:100%"><div class="sbar"><button class="x" data-a="minimize" aria-label="Volver sin terminar">${ICON.x}</button><div class="grow"><div class="t" style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(dnm(a.dayName)[0])}</div><div class="small muted">${a.deload?'Semana de descarga · ':''}<span id="elapsed"></span></div></div><button class="btn primary sm" data-a="finish">Terminar</button></div>
   <div class="pbar" role="progressbar" aria-label="Series hechas" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${dn}"><i style="width:${tot?dn/tot*100:0}%"></i></div>
   <div style="flex:1;overflow-y:auto" id="sscroll"><div class="wrap">`;
   const curEx=a.ex.findIndex(e=>e.sets.some(x=>!x.done));
@@ -1030,7 +1071,7 @@ function vSession(){
     const d=ex(e.exId),hist=histOf(e.exId),last=hist.length?hist[hist.length-1]:null,sg0=suggest(e.exId,e.lo,e.hi,0,a.deload);
     const ssPrev=ei>0&&a.ex[ei-1].ss;
     if(e.sets.every(x=>x.done)&&UI.openEx!==ei){h+=`<button class="card fold" id="ex-${ei}" data-a="exopen" data-e="${ei}" aria-label="Ver ${esc(d.n)}"><span class="ok">${ICON.check.replace('width="20" height="20"','width="16" height="16"')}</span><span class="grow"><span class="t" style="font-weight:600">${esc(d.n)}</span><br><span class="small muted">${e.sets.map(x=>esc(x.w)+'×'+esc(x.r)).join(' · ')}</span></span><span class="muted">›</span></button>`;return}
-    h+=`<div class="card ${ei===curEx?'cur':''}" id="ex-${ei}">${e.ss||ssPrev||e.tec?`<div class="chips">${e.ss?`<span class="chip on">Superserie con ${esc(ex(a.ex[ei+1]?a.ex[ei+1].exId:'').n)}</span>`:''}${ssPrev?`<span class="chip on">Superserie · segunda parte</span>`:''}${e.tec?`<span class="chip warn">${esc(e.tec)}</span>`:''}</div>`:''}<div class="exh"><div class="grow"><h3>${esc(d.n)}</h3><div class="small muted">${e.sets.length} × ${e.lo}–${e.hi} reps · descanso ${mmss(restTier(e)[3])} a ${mmss(restTier(e)[0])}</div></div><button class="btn sm" data-a="tech" data-v="${esc(e.exId)}">Técnica</button></div>`;
+    h+=`<div class="card ${ei===curEx?'cur':''}" id="ex-${ei}">${e.ss||ssPrev||e.tec?`<div class="chips">${e.ss?`<span class="chip on">Superserie con el siguiente</span>`:''}${ssPrev?`<span class="chip on">Superserie · 2.ª parte</span>`:''}${e.tec?`<span class="chip warn">${esc(e.tec)}</span>`:''}</div>`:''}<div class="exh"><div class="grow"><h3>${esc(dnm(d.n)[0])}</h3><div class="small muted">${dnm(d.n)[1]?esc(dnm(d.n)[1])+' · ':''}${e.sets.length} × ${e.lo}–${e.hi} · pausa ${mmss(restTier(e)[3])}–${mmss(restTier(e)[0])}</div></div><button class="btn sm" data-a="tech" data-v="${esc(e.exId)}">Técnica</button></div>`;
     {const fs=e.sets[0];if(!e.sets.some(x=>x.done))h+=warmBlock(a,e,ei,num(fs.w)??(sg0?sg0.w:(last?last.sets[0][0]:null)))}
     {const lp=lastPain(e.exId);if(lp&&!e.pain)h+=`<div class="hint" style="background:var(--warn-soft)"><b>La última vez marcaste una molestia ${['','leve','media','fuerte'][lp]} acá.</b> Arrancá con menos peso y, si vuelve, cambiá el ejercicio.</div>`}
     if(a.deload)h+='<div class="hint">Descarga: mismo peso de siempre, menos series y dejá 3–4 reps en reserva.</div>';
@@ -1117,11 +1158,11 @@ function vRutina(){
   const pi=planIdx();
   let h=head(pi>=0?'Fase '+(pi+1)+' de '+PLAN.length+' · semana '+Math.min(wk,99)+' de '+PLAN[pi].w+(isDeload()?' · descarga':''):'Bloque '+((pr.block||0)+1)+' · semana '+wk+(isDeload()?' · descarga':''),'Rutina');
   h+=`<div class="card"><div><h3>Plan de fases</h3><div class="small muted">Tres rutinas ya cargadas, 8 semanas cada una. Al terminar una, la app te avisa y pasás a la siguiente con un toque; después de la tercera vuelve a empezar.</div></div><div class="list">${PLAN.map((f,i)=>{const cur=i===pi;return `<button class="li" data-a="phase" data-v="${i}"><span class="num" style="font-size:24px;width:26px;color:${cur?'var(--accent)':'var(--muted)'}">${i+1}</span><span class="grow"><span class="t">${esc(PRESET[f.k].name.split(' · ')[1])}</span><br><span class="small muted">${cur?'Semana '+wk+' de '+f.w+(wk>f.w?' · ya podés pasar a la siguiente':''):f.w+' semanas'}</span>${cur?`<span class="bar" style="display:block;height:6px;border-radius:3px;background:var(--surface2);margin-top:6px;overflow:hidden"><span style="display:block;height:100%;width:${Math.min(100,wk/f.w*100)}%;background:var(--accent)"></span></span>`:''}</span><span class="chip ${cur?'on':''}">${cur?'Actual':'Ver'}</span></button>`}).join('')}</div></div>`;
-  h+=`<div class="card"><div class="row between wrapx"><div><h3>${esc(pr.name)}</h3><div class="small muted">Desde el ${fmtD(pr.created)} · ${pr.preset?'rutina propia':'énfasis '+esc((FOCUS[pr.focus]||FOCUS.equilibrado).n.toLowerCase())}</div></div><button class="btn sm primary" data-a="genopen">Cambiar rutina</button></div>
-    <div class="row wrapx"><button class="btn sm" data-a="deload">${isDeload()?'Quitar descarga':'Semana de descarga'}</button></div></div>`;
+  h+=`<div class="card"><div class="row between wrapx"><div><h3>${esc(pr.name)}</h3><div class="small muted">Desde el ${fmtD(pr.created)} · ${pr.preset?'rutina propia':'énfasis '+esc((FOCUS[pr.focus]||FOCUS.equilibrado).n.toLowerCase())}</div></div></div>
+    <div class="row"><button class="btn sm primary grow" data-a="genopen">Cambiar rutina</button><button class="btn sm grow" data-a="deload">${isDeload()?'Quitar descarga':'Descarga'}</button></div></div>`;
   pr.days.forEach((d,i)=>{
-    h+=`<div class="card"><div class="row between wrapx"><div class="grow"><div class="tag">Día ${i+1}${i===nextIdx()?' · siguiente':''}</div><h3>${esc(d.name)}</h3></div><div class="row"><button class="btn sm" data-a="editday" data-v="${i}">Editar</button><button class="btn sm primary" data-a="start" data-v="${i}">Empezar</button></div></div><div class="list">`;
-    d.ex.forEach(e=>{const x=ex(e.exId);h+=`<button class="li" data-a="tech" data-v="${esc(e.exId)}"><span class="grow"><span class="t">${esc(x.n)}</span><br><span class="small muted">${MUSC[x.m]} · ${esc(x.eq)}${e.ss?' · superserie con el siguiente':''}${e.tec?' · '+esc(e.tec.toLowerCase()):''}</span></span><span class="num" style="font-size:19px;white-space:nowrap">${e.sets} × ${e.lo}–${e.hi}</span></button>`});
+    h+=`<div class="card"><div class="row"><div class="grow"><div class="tag">Día ${i+1}${i===nextIdx()?' · siguiente':''}</div><h3 class="one">${esc(dnm(d.name)[0])}</h3>${dnm(d.name)[1]?`<div class="small muted one">${esc(dnm(d.name)[1])}</div>`:''}</div><button class="btn sm ic ghost" data-a="editday" data-v="${i}" aria-label="Editar día" style="min-width:40px;padding:0 8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="btn sm primary" data-a="start" data-v="${i}" aria-label="Empezar este día" style="min-width:44px;padding:0 14px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z"/></svg></button></div><div class="list">`;
+    d.ex.forEach(e=>{const x=ex(e.exId);h+=`<button class="li" data-a="tech" data-v="${esc(e.exId)}"><span class="grow" style="min-width:0"><span class="t one" style="display:block">${esc(dnm(x.n)[0])}</span><span class="small muted" style="display:block"><b style="color:var(--ink);font-variant-numeric:tabular-nums">${e.sets} × ${e.lo}–${e.hi}</b> · ${dnm(x.n)[1]?esc(dnm(x.n)[1]):MUSC[x.m]}${e.ss?' · superserie':''}${e.tec?' · '+esc(e.tec.toLowerCase()):''}</span></span><span class="muted">›</span></button>`});
     h+='</div></div>';
   });
   h+=`<div class="card"><h3>Volumen planificado</h3>${volBars(plannedVol(),'Series por semana según la rutina (los músculos secundarios cuentan media serie).')}</div>`;
@@ -1193,9 +1234,9 @@ function coach(){
 function vProgreso(){
   const ws=workouts(),goal=(profile()||{}).days||5,wc=weekCount(monday(today()));
   let h=head('Historial y asistencia','Progreso');
-  h+=`<div class="tiles"><div class="tile"><div class="num">${wc}<span class="muted" style="font-size:18px"> / ${goal}</span></div><div class="lbl">días esta semana</div></div><div class="tile"><div class="num">${weekStreak()}</div><div class="lbl">semanas seguidas cumpliendo</div></div><div class="tile"><div class="num">${ws.length}</div><div class="lbl">entrenamientos en total</div></div></div>`;
+  h+=`<div class="tiles"><div class="tile"><div class="num">${wc}<span class="muted" style="font-size:18px"> / ${goal}</span></div><div class="lbl">esta semana</div></div><div class="tile"><div class="num">${weekStreak()}<span class="muted" style="font-size:18px"> sem</span></div><div class="lbl">racha</div></div><div class="tile"><div class="num">${ws.length}</div><div class="lbl">sesiones</div></div></div>`;
   const mon=monday(today());let wS=0,wR=0,wK=0,wF=[],rirs=[],gM=0,gT=0;ws.forEach(w=>{if(w.date>=mon&&!w.manual){if(w.goals){gM+=w.goals[0];gT+=w.goals[1]}(w.ex||[]).forEach(e=>e.sets.forEach(x=>{wS++;wR+=x[1];wK+=x[0]*x[1];if(x[2]!=null)rirs.push(x[2])}));if(w.fat)wF.push(w.fat)}});
-  h+=`<div class="card"><h3>Conteo de la semana</h3><div class="tiles" style="grid-template-columns:repeat(2,1fr)"><div class="tile"><div class="num">${wS}</div><div class="lbl">series</div></div><div class="tile"><div class="num">${wR}</div><div class="lbl">repeticiones</div></div><div class="tile"><div class="num">${fmtN(Math.round(wK))}</div><div class="lbl">kg movidos</div></div><div class="tile"><div class="num">${wF.length?fmtN(Math.round(wF.reduce((a,b)=>a+b,0)/wF.length*10)/10)+'<span class="muted" style="font-size:18px"> / 5</span>':'—'}</div><div class="lbl">cansancio promedio al terminar</div></div></div>${gT?`<div class="row"><span class="chip ${gM>=gT*.7?'good':''}">Objetivos logrados esta semana: ${gM} de ${gT} series</span></div>`:''}${rirs.length?`<div class="small muted">Reps en reserva promedio: ${fmtN(Math.round(rirs.reduce((a,b)=>a+b,0)/rirs.length*10)/10)}. Para hipertrofia el objetivo es quedar entre 0 y 3 en la mayoría de las series.</div>`:''}</div>`;
+  h+=`<div class="card"><h3>Conteo de la semana</h3><div class="tiles" style="grid-template-columns:repeat(2,1fr)"><div class="tile"><div class="num">${wS}</div><div class="lbl">series</div></div><div class="tile"><div class="num">${wR}</div><div class="lbl">repeticiones</div></div><div class="tile"><div class="num">${fmtN(Math.round(wK))}</div><div class="lbl">kg movidos</div></div><div class="tile"><div class="num">${wF.length?fmtN(Math.round(wF.reduce((a,b)=>a+b,0)/wF.length*10)/10)+'<span class="muted" style="font-size:18px"> / 5</span>':'—'}</div><div class="lbl">cansancio final</div></div></div>${gT?`<div class="row"><span class="chip ${gM>=gT*.7?'good':''}">Objetivos logrados esta semana: ${gM} de ${gT} series</span></div>`:''}${rirs.length?`<div class="small muted">Reps en reserva promedio: ${fmtN(Math.round(rirs.reduce((a,b)=>a+b,0)/rirs.length*10)/10)}. Para hipertrofia el objetivo es quedar entre 0 y 3 en la mayoría de las series.</div>`:''}</div>`;
   const co=coach();
   if(co.length)h+=`<div class="card"><div><h3>Análisis de tu entrenamiento</h3><div class="small muted">Calculado con tus registros.</div></div><div class="list">${co.map(([c,t])=>`<div class="li"><span style="width:10px;height:10px;border-radius:50%;flex:none;background:var(--${c==='good'?'good':c==='warn'?'warn':'muted'})"></span><span class="grow">${esc(t)}</span></div>`).join('')}</div></div>`;
   {const lm=addDays(monday(today()),-7),w=weekSum(lm);if(w.any)h+=`<div class="card"><div><h3>Semana pasada</h3><div class="small muted">Del ${fmtD(lm)} al ${fmtD(addDays(lm,6))}</div></div><div class="list">
@@ -1229,16 +1270,16 @@ function vProgreso(){
   const bw=bwSeries();
   {const rc=records();if(rc.length)h+=`<div class="card"><h3>Tus récords</h3><div class="list">${rc.slice(0,UI.recAll?99:6).map(r=>`<button class="li" data-a="tech" data-v="${esc(r.id)}"><span class="grow"><span class="t">${esc(ex(r.id).n)}</span><br><span class="small muted">${fmtD(r.d)}</span></span><span class="num" style="font-size:17px;white-space:nowrap">${fmtN(r.q[0])} kg × ${r.q[1]}</span></button>`).join('')}</div>${rc.length>6&&!UI.recAll?'<button class="btn sm ghost" data-a="recall">Ver todos</button>':''}</div>`}
   {const cw=weekSum(monday(today())).bw,pw=weekSum(addDays(monday(today()),-7)).bw;
-  h+=`<div class="card"><h3>Peso corporal</h3>${cw!=null||pw!=null?`<div class="tiles" style="grid-template-columns:1fr 1fr"><div class="tile"><div class="num">${cw!=null?fmtN(Math.round(cw*10)/10):'—'}</div><div class="lbl">promedio de esta semana (kg)</div></div><div class="tile"><div class="num">${pw!=null?fmtN(Math.round(pw*10)/10):'—'}</div><div class="lbl">promedio de la semana pasada</div></div></div>`:''}${bw.length?lineChart(bw.slice(-60),'kg'):'<div class="muted">Cargá tu peso desde Hoy para ver la curva.</div>'}<div class="small muted">Mirá el promedio de la semana, no el número del día: el peso sube y baja solo. Con pesarte una o dos veces por semana, siempre en la misma balanza y a la misma hora, alcanza.</div></div>`;}
+  h+=`<div class="card"><h3>Peso corporal</h3>${cw!=null||pw!=null?`<div class="tiles" style="grid-template-columns:1fr 1fr"><div class="tile"><div class="num">${cw!=null?fmtN(Math.round(cw*10)/10):'—'}</div><div class="lbl">media esta semana</div></div><div class="tile"><div class="num">${pw!=null?fmtN(Math.round(pw*10)/10):'—'}</div><div class="lbl">semana pasada</div></div></div>`:''}${bw.length?lineChart(bw.slice(-60),'kg'):'<div class="muted">Cargá tu peso desde Hoy para ver la curva.</div>'}<div class="small muted">Mirá el promedio de la semana, no el número del día: el peso sube y baja solo. Con pesarte una o dos veces por semana, siempre en la misma balanza y a la misma hora, alcanza.</div></div>`;}
   {const b=(S.docs.body&&S.docs.body.m)||[],k=UI.measK||'brazo',pts=b.filter(x=>x[k]!=null).map(x=>({d:x.d,v:x[k]})),l=b[b.length-1],f=b[0];
-  h+=`<div class="card"><div class="row between"><div><h3>Medidas</h3><div class="small muted">${l?'Última carga: '+fmtD(l.d)+'. Repetí cada dos semanas.':'Con cinta métrica, cada dos semanas.'}</div></div><button class="btn sm primary" data-a="measure">Cargar</button></div>
+  h+=`<div class="card"><div class="row between"><div><h3>Medidas</h3><div class="small muted">${chkInfo()&&chkInfo().next?'Próximo control: '+fmtD(chkInfo().due&&!chkInfo().done?chkInfo().due:chkInfo().next,{weekday:'short',day:'numeric',month:'short'}):l?'Última: '+fmtD(l.d):'Con cinta métrica'}</div></div><button class="btn sm primary" data-a="measure">Cargar</button></div>
     ${l?`<div class="mgrid">${MEAS.map(([kk,n])=>{const last=b.filter(x=>x[kk]!=null),v=last.length?last[last.length-1][kk]:null,d0=last.length>1?v-last[0][kk]:null;return `<button class="tile" data-a="meas" data-v="${kk}" style="text-align:left;${k===kk?'box-shadow:0 0 0 2px var(--accent)':''}"><div class="num">${v!=null?fmtN(v):'—'}</div><div class="lbl">${n} (cm)${d0?` · ${d0>0?'+':''}${fmtN(Math.round(d0*10)/10)}`:''}</div></button>`}).join('')}</div>${pts.length>1?lineChart(pts,'cm'):''}`:''}</div>`;}
   {const ph=UI.photos||[];
-  h+=`<div class="card"><div class="row between"><div><h3>Fotos de progreso</h3><div class="small muted">Misma luz, misma pose, cada dos semanas.</div></div><label class="btn sm primary" style="cursor:pointer">Agregar<input type="file" accept="image/*" data-in="photo" id="ph-in" hidden></label></div>
+  h+=`<div class="card"><div class="row between"><div><h3>Fotos de progreso</h3><div class="small muted">Misma luz y pose, cada 15 días</div></div><label class="btn sm primary" style="cursor:pointer">Agregar<input type="file" accept="image/*" data-in="photo" id="ph-in" hidden></label></div>
     ${ph.length>1?`<div class="ph"><figure><img src="${ph[0].url}" alt="Primera foto"><figcaption>${fmtD(ph[0].d)}</figcaption></figure><figure><img src="${ph[ph.length-1].url}" alt="Última foto"><figcaption>${fmtD(ph[ph.length-1].d)}</figcaption></figure></div>`:''}
     ${ph.length?`<div class="strip">${ph.map(x=>`<button data-a="phopen" data-v="${x.id}" aria-label="Foto del ${fmtD(x.d)}"><img src="${x.url}" alt=""></button>`).join('')}</div>`:''}
-    <div class="small muted">Las fotos quedan guardadas solo en este teléfono: no se suben a ningún lado ni se sincronizan.</div></div>`;}
-  if(ws.length)h+=`<div class="card"><h3>Últimos entrenamientos</h3><div class="list">${ws.slice(-8).reverse().map(w=>`<button class="li" data-a="wopen" data-v="${esc(w.id)}"><span class="grow"><span class="t">${esc(w.dayName||'Entrenamiento')}</span><br><span class="small muted">${fmtD(w.date,{weekday:'short',day:'numeric',month:'short'})}${w.manual?' · solo asistencia':' · '+(w.ex||[]).reduce((n,e)=>n+e.sets.length,0)+' series · '+Math.round((w.end-w.start)/6e4)+' min'+(w.fat?' · cansancio '+w.fat+'/5':'')+(w.over>=60?' · '+Math.round(w.over/60)+' min de descanso de más':'')}</span></span><span class="muted">›</span></button>`).join('')}</div></div>`;
+    <div class="small muted">${S.col?(UI.phErr?'No se pudieron respaldar en Drive todavía; se reintenta al abrir la app.':ph.some(x=>!x.fid)?'Subiendo a tu Drive…':'Respaldadas en tu Google Drive, carpeta «Gym - fotos». Solo vos las ves.'):'Sin sincronizar: las fotos quedan solo en este teléfono.'}</div></div>`;}
+  if(ws.length)h+=`<div class="card"><h3>Últimos entrenamientos</h3><div class="list">${ws.slice(-8).reverse().map(w=>`<button class="li" data-a="wopen" data-v="${esc(w.id)}"><span class="grow"><span class="t">${esc(dnm(w.dayName||'Entrenamiento')[0])}</span><br><span class="small muted">${fmtD(w.date,{weekday:'short',day:'numeric',month:'short'})}${w.manual?' · solo asistencia':' · '+(w.ex||[]).reduce((n,e)=>n+e.sets.length,0)+' series · '+Math.round((w.end-w.start)/6e4)+' min'+(w.fat?' · cansancio '+w.fat+'/5':'')+(w.over>=60?' · '+Math.round(w.over/60)+' min de descanso de más':'')}</span></span><span class="muted">›</span></button>`).join('')}</div></div>`;
   return h;
 }
 
@@ -1267,12 +1308,12 @@ function vPerfil(){
   h+=`<div class="card"><h3>Datos personales</h3>
     <div class="field"><label for="pf-name">Nombre</label><input class="inp" id="pf-name" data-in="pf" data-k="name" value="${esc(p.name||'')}"></div>
     <div class="row"><div class="field grow"><label for="pf-h">Altura (cm)</label><input class="inp" id="pf-h" inputmode="numeric" data-in="pf" data-k="height" data-n="1" value="${esc(p.height||'')}"></div>
-    <div class="field grow"><label for="pf-days">Días por semana</label><select class="inp" id="pf-days" data-in="pf" data-k="days" data-n="1">${[2,3,4,5,6,7].map(n=>`<option ${n===(p.days||5)?'selected':''}>${n}</option>`).join('')}</select></div>
+    <div class="field grow"><label for="pf-days">Días/sem.</label><select class="inp" id="pf-days" data-in="pf" data-k="days" data-n="1">${[2,3,4,5,6,7].map(n=>`<option ${n===(p.days||5)?'selected':''}>${n}</option>`).join('')}</select></div>
     <div class="field grow"><label for="pf-bar">Barra (kg)</label><input class="inp" id="pf-bar" inputmode="decimal" data-in="pf" data-k="bar" data-n="1" value="${esc(p.bar||20)}"></div></div>
     <div class="chips"><span class="chip">Objetivo: ganar músculo</span>${bw!=null?`<span class="chip">Peso: ${fmtN(bw)} kg</span>`:''}</div></div>`;
   const gi=gymInfo(),g=p.gym||{};
   h+=`<div class="card"><div class="row between"><h3>Gimnasio y pase libre</h3>${gi&&gi.left!=null?`<span class="chip ${gi.left<=7?'warn':'good'}">${gi.left<0?'Vencido':gi.left===0?'Vence hoy':'Quedan '+gi.left+(gi.left===1?' día':' días')}</span>`:''}</div><div class="small muted">${g.name?esc(g.name):'Sin gimnasio cargado'}${g.until?' · pase libre hasta el '+fmtD(g.until,{day:'numeric',month:'long',year:'numeric'}):''}</div><button class="btn sm" data-a="renew">Cambiar gimnasio o fecha</button></div>`;
-  h+=`<div class="card"><h3>Guía de nutrición para tu objetivo</h3>${bw!=null?`<div class="tiles" style="grid-template-columns:1fr 1fr"><div class="tile"><div class="num">${Math.round(bw*1.6)}–${Math.round(bw*2.2)} g</div><div class="lbl">proteína por día (1,6 a 2,2 g por kg)</div></div><div class="tile"><div class="num">3–5 g</div><div class="lbl">creatina monohidrato por día</div></div></div>`:'<div class="muted">Cargá tu peso corporal en Hoy y te calculo la proteína diaria.</div>'}
+  h+=`<div class="card"><h3>Nutrición</h3>${bw!=null?`<div class="tiles" style="grid-template-columns:1fr 1fr"><div class="tile"><div class="num">${Math.round(bw*1.6)}–${Math.round(bw*2.2)}</div><div class="lbl">g de proteína / día</div></div><div class="tile"><div class="num">3–5</div><div class="lbl">g de creatina / día</div></div></div><div class="small muted">Proteína: 1,6 a 2,2 g por kg de peso. Creatina: monohidrato, a cualquier hora.</div>`:'<div class="muted">Cargá tu peso corporal en Hoy y te calculo la proteína diaria.</div>'}
     <div class="small muted">Para ganar músculo sin sumar grasa de más, apuntá a subir entre 0,25% y 0,5% de tu peso por semana. La creatina funciona por acumulación: lo que importa es tomarla todos los días, incluso los que no entrenás. La hora no cambia el resultado. Son referencias generales, no un plan médico.</div></div>`;
   h+=`<div class="card"><h3>Suplementos</h3><div class="list">${supps().map(s=>`<div class="li"><span class="grow"><span class="t">${esc(s.name)}</span> <span class="muted">${esc(s.dose||'')}</span><br><span class="small muted">${esc(s.note||'')}</span></span><button class="btn sm ghost danger" data-a="suppdel" data-v="${esc(s.id)}">Quitar</button></div>`).join('')||'<div class="muted">Sin suplementos.</div>'}</div>
     <div class="row wrapx"><input class="inp grow" id="sp-name" placeholder="Nombre (ej: proteína)" aria-label="Nombre del suplemento" style="min-width:140px"><input class="inp" id="sp-dose" placeholder="Dosis" aria-label="Dosis" style="width:110px"><button class="btn" data-a="suppadd">Agregar</button></div></div>`;
@@ -1348,13 +1389,14 @@ function shMeasure(){
   const b=(S.docs.body&&S.docs.body.m)||[],l=b[b.length-1]||{};
   return {title:'Cargar medidas',html:`<div class="small muted">En centímetros, con cinta, a la mañana y sin haber entrenado. Brazo flexionado; cintura a la altura del ombligo; muslo a mitad de pierna. Cargá solo las que midas.</div>
     <div class="mgrid">${MEAS.map(([k,n])=>`<div class="field"><label for="ms-${k}">${n}</label><input class="inp" id="ms-${k}" inputmode="decimal" placeholder="${l[k]!=null?fmtN(l[k]):'cm'}"></div>`).join('')}</div>
+    <div class="field"><label for="ms-bw">Peso (kg), si tenés balanza</label><input class="inp" id="ms-bw" inputmode="decimal" placeholder="${lastBw()!=null?fmtN(lastBw()):'kg'}"></div>
     <button class="btn primary block" data-a="measave">Guardar</button>`};
 }
 function shPhoto(s){
   const ph=(UI.photos||[]).find(x=>x.id===s.id);if(!ph)return {title:'Foto',html:'<div class="muted">Ya no existe.</div>'};
   return {title:fmtD(ph.d,{day:'numeric',month:'long',year:'numeric'}),html:`<img src="${ph.url}" alt="Foto de progreso" style="width:100%;border-radius:14px;display:block"><button class="btn ghost danger block" data-a="phdel" data-v="${ph.id}">Borrar esta foto</button>`};
 }
-function shFatigue(){return {title:'¿Qué tan cansado terminaste?',html:`<div class="small muted">Con esto la app detecta fatiga acumulada y te avisa cuándo conviene una descarga.</div><div class="list">${[1,2,3,4,5].map(v=>`<button class="li" data-a="fat" data-v="${v}"><span class="num" style="font-size:24px;width:28px">${v}</span><span class="grow t">${FAT[v]}</span><span class="muted">›</span></button>`).join('')}</div><button class="btn ghost block" data-a="fat" data-v="0">Guardar sin responder</button>`}}
+function shFatigue(){return {title:'¿Cómo terminaste?',html:`<div class="small muted">Marcá qué tan cansado quedaste. Con esto la app detecta fatiga acumulada y te avisa cuándo conviene una descarga.</div><div class="list">${[1,2,3,4,5].map(v=>`<button class="li" data-a="fat" data-v="${v}"><span class="num" style="font-size:24px;width:28px">${v}</span><span class="grow t">${FAT[v]}</span><span class="muted">›</span></button>`).join('')}</div><button class="btn ghost block" data-a="fat" data-v="0">Guardar sin responder</button>`}}
 function shRenew(){const g=(profile()||{}).gym||{};const base=g.until&&g.until>today()?g.until:today();const d=pdate(base);d.setMonth(d.getMonth()+1);return {title:'Pase del gimnasio',html:`<div class="field"><label for="gy-name">Gimnasio</label><input class="inp" id="gy-name" value="${esc(g.name||'')}" placeholder="Nombre del gimnasio"></div><div class="field"><label for="gy-until">Pase libre válido hasta</label><input class="inp" id="gy-until" type="date" value="${esc(ymd(d))}"></div><div class="small muted">Te propongo un mes más desde el vencimiento actual. La app te avisa en Hoy cuando falten 7 días o menos.</div><button class="btn primary block" data-a="renewok">Guardar</button>`}}
 function shSummary(s){
   return {title:'Entrenamiento guardado',html:`<div class="tiles"><div class="tile"><div class="num">${s.min}</div><div class="lbl">minutos</div></div><div class="tile"><div class="num">${s.sets}</div><div class="lbl">series</div></div><div class="tile"><div class="num">${s.reps}</div><div class="lbl">repeticiones</div></div></div><div class="small muted">${fmtN(Math.round(s.vol))} kg movidos en total.${s.over>=60?' Descansaste '+Math.round(s.over/60)+' min de más entre series.':s.sets>1?' Respetaste los descansos.':''}</div>${s.gt?`<div class="row"><span class="chip ${s.gm===s.gt?'good':s.gm>=s.gt/2?'':'warn'}">Objetivos logrados: ${s.gm} de ${s.gt} series</span></div>`:''}
@@ -1364,11 +1406,11 @@ function shSummary(s){
 }
 function shWorkout(s){
   const w=S.docs[s.id];if(!w)return {title:'Entrenamiento',html:'<div class="muted">Ya no existe.</div>'};
-  return {title:w.dayName||'Entrenamiento',html:`<div class="small muted">${fmtD(w.date,{weekday:'long',day:'numeric',month:'long',year:'numeric'})}${w.manual?' · solo asistencia':' · '+Math.round((w.end-w.start)/6e4)+' min'}</div>
+  return {title:dnm(w.dayName||'Entrenamiento')[0],html:`<div class="small muted">${fmtD(w.date,{weekday:'long',day:'numeric',month:'long',year:'numeric'})}${w.manual?' · solo asistencia':' · '+Math.round((w.end-w.start)/6e4)+' min'}</div>
     <div class="list">${(w.ex||[]).map(e=>`<div class="li"><span class="grow"><span class="t">${esc(ex(e.exId).n)}</span><br><span class="num" style="font-size:17px;font-weight:600">${e.sets.map(x=>fmtSet(x)+(x[3]?' ayuda '+ASL[x[4]||1]:'')+(x[2]!=null?' (R'+(x[2]>=4?'4+':x[2])+')':'')).join('  ·  ')}</span></span></div>`).join('')}</div>
     ${w.fat?`<div class="chips"><span class="chip">Cansancio ${w.fat}/5 · ${FAT[w.fat]}</span>${w.gym?`<span class="chip">${esc(w.gym)}</span>`:''}</div>`:''}${w.note?`<div class="hint">${esc(w.note)}</div>`:''}<button class="btn ghost danger block" data-a="wdel" data-v="${esc(s.id)}">Borrar este entrenamiento</button>`};
 }
-function shPickDay(){return {title:'¿Qué día hacés?',html:'<div class="list">'+`<button class="li" data-a="travel"><span class="grow"><span class="t">Modo viaje</span><br><span class="small muted">Cuerpo completo con mancuernas y poco equipo · 8 ejercicios. No cuenta como uno de tus días.</span></span><span class="chip">Empezar</span></button>`+program().days.map((d,i)=>`<button class="li" data-a="start" data-v="${i}"><span class="grow"><span class="t">${esc(d.name)}</span><br><span class="small muted">${d.ex.length} ejercicios</span></span><span class="chip">Empezar</span></button>`).join('')+'</div>'}}
+function shPickDay(){return {title:'¿Qué día hacés?',html:'<div class="list">'+`<button class="li" data-a="travel"><span class="grow"><span class="t">Modo viaje</span><br><span class="small muted">Cuerpo completo con mancuernas y poco equipo · 8 ejercicios. No cuenta como uno de tus días.</span></span><span class="chip">Empezar</span></button>`+program().days.map((d,i)=>`<button class="li" data-a="start" data-v="${i}"><span class="grow"><span class="t">${esc(dnm(d.name)[0])}</span><br><span class="small muted">${dnm(d.name)[1]?esc(dnm(d.name)[1])+' · ':''}${d.ex.length} ejercicios</span></span><span class="chip">Empezar</span></button>`).join('')+'</div>'}}
 
 /* ============ acciones ============ */
 function saveProgram(fn){const p=clone(program());fn(p);put('program',p)}
@@ -1481,11 +1523,12 @@ const ACT={
   painset(el){const a=clone(active()),e=a.ex[UI.sheet.ei],v=+el.dataset.v;if(v)e.pain=v;else delete e.pain;saveActive(a,true);if(v>=2){render()}else{UI.sheet=null;keepScroll(render)}},
   painswap(){const ei=UI.sheet.ei,e=active().ex[ei];UI.sheet={t:'pick',title:'Cambiar ejercicio',m:ex(e.exId).m,mode:'swap',ei};renderSheet()},
   measure(){UI.sheet={t:'measure'};renderSheet()},
-  measave(){const r={d:today()};let n=0;MEAS.forEach(([k])=>{const v=num($('#ms-'+k).value);if(v&&v>5&&v<300){r[k]=v;n++}});if(!n){toast('Cargá al menos una medida en centímetros');return}
+  chkdone(el){const p=clone(profile());p.chk=Object.assign({},p.chk,{done:el.dataset.v});put('profile',p);render()},
+  measave(){const r={d:today()};let n=0;MEAS.forEach(([k])=>{const v=num($('#ms-'+k).value);if(v&&v>5&&v<300){r[k]=v;n++}});const bwv=num($('#ms-bw').value);if(bwv&&bwv>=30&&bwv<=250)setLogDay(today(),d=>d.bw=bwv);if(!n&&!bwv){toast('Cargá al menos una medida');return}if(!n){UI.sheet=null;toast('Peso guardado');render();return}
     const b=clone(S.docs.body||{m:[]});const i=b.m.findIndex(x=>x.d===r.d);if(i>=0)b.m[i]=Object.assign(b.m[i],r);else b.m.push(r);put('body',b);UI.sheet=null;toast('Medidas guardadas');render()},
   meas(el){UI.measK=el.dataset.v;render()},
   phopen(el){UI.sheet={t:'photo',id:+el.dataset.v};renderSheet()},
-  phdel(el){const id=+el.dataset.v;UI.sheet={t:'confirm',title:'¿Borrar esta foto?',text:'Se borra de este teléfono. No se puede deshacer.',ok:'Borrar',danger:true,async fn(){await phDelete(id);render()}};renderSheet()},
+  phdel(el){const id=+el.dataset.v;UI.sheet={t:'confirm',title:'¿Borrar esta foto?',text:S.col?'Se borra de este teléfono y pasa a la papelera de tu Drive.':'Se borra de este teléfono. No se puede deshacer.',ok:'Borrar',danger:true,async fn(){await phDelete(id);render()}};renderSheet()},
   travel(){if(active()){toast('Terminá el entrenamiento en curso primero');return}
     const L=[['bulgara',3,8,12,120],['press_incl_manc',3,8,12,120],['remo_manc',3,8,12,120],['pm_rumano',3,8,12,120],['press_hombros_manc',3,10,12,90],['lat_manc',3,12,15,60],['curl_alt',2,10,12,60],['fondos',2,8,12,90]];
     const a={start:Date.now(),date:today(),dayIdx:null,dayId:'viaje',dayName:'Modo viaje · cuerpo completo',deload:false,note:'',ex:L.map(([id,n,lo,hi,rest])=>({exId:id,lo,hi,rest,ss:0,tec:'',sets:Array.from({length:n},()=>({w:'',r:'',done:false}))}))};
@@ -1565,6 +1608,7 @@ if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceW
 document.addEventListener('touchmove',e=>{if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});
 /* ============ arranque ============ */
 phLoad().then(()=>{if(UI.tab==='progreso')softRender()});
+setTimeout(()=>phSync(),4000);
 loadLocal();
 try{const t=JSON.parse(localStorage.getItem('gym.timer')||'null');if(t&&S.docs.active&&Date.now()-t.end<9e5)UI.timer=t;else localStorage.removeItem('gym.timer')}catch(e){}
 if(active())UI.tab='hoy';

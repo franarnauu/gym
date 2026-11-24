@@ -686,8 +686,9 @@ const PRESET={
 PRESET.franopt.name='Fase 1 · Base';
 const PLAN=[{k:'franopt',w:8,d:'Tu rutina con los ajustes que charlamos. Cargas medias y pesadas.'},{k:'fase2',w:8,d:'Mismos músculos y días, otras variantes: prensa primero, jalón, inclinado con barra, fondos, hip thrust pesado.'},{k:'fase3',w:8,d:'Vuelven tus ejercicios base con rangos de 10 a 20 reps y más drop sets.'}];
 const planIdx=()=>{const pr=program();return pr?PLAN.findIndex(x=>x.k===pr.preset):-1};
-function presetProgram(k,block){const p=PRESET[k];return {name:p.name,created:today(),block:block||0,focus:'equilibrado',preset:k,byWeekday:true,days:p.days.map(([n,e])=>({id:uidx(),name:n,ex:clone(e)})),next:0,deload:null,past:[]}}
-function nextIdx(){const pr=program();if(!pr)return 0;const wd=(new Date().getDay()+6)%7;if(pr.byWeekday&&wd<pr.days.length&&!attended()[today()])return wd;return pr.next%pr.days.length}
+function presetProgram(k,block){const p=PRESET[k];return {name:p.name,created:today(),block:block||0,focus:'equilibrado',preset:k,byWeekday:true,days:p.days.map(([n,e])=>({id:uidx(),name:n.replace(WD,''),ex:clone(e)})),next:0,deload:null,past:[]}}
+const WD=/^(Lunes|Martes|Miércoles|Jueves|Viernes) · /;
+function nextIdx(){const pr=program();if(!pr)return 0;const mon=monday(today()),done={};workouts().forEach(w=>{if(w.date>=mon&&w.dayId)done[w.dayId]=1});const i=pr.days.findIndex(d=>!done[d.id]);return i>=0?i:pr.next%pr.days.length}
 function gymInfo(){const g=(profile()||{}).gym;if(!g||!g.until)return g?{g,left:null}:null;return {g,left:Math.round((pdate(g.until)-pdate(today()))/864e5)}}
 const WARM={
  pecho:['Círculos de brazos, 10 hacia cada lado','Rotación externa de hombro con banda o polea liviana, 15 reps','Flexiones de brazos suaves, 8–10'],
@@ -708,14 +709,14 @@ function warmBlock(a,e,ei,ref){
   if(!first&&!newM)return '';
   const rd=w=>{const st=d.eq==='Barra'?2.5:d.eq==='Mancuernas'?2:5;return Math.max(st,Math.round(w/st)*st)};
   let ramp;
-  if(d.bw)ramp=first?['1 serie fácil de 5 reps sin lastre','1 serie de 2–3 reps sin lastre']:['1 serie fácil de 3–5 reps'];
-  else if(ref)ramp=first?[fmtN(rd(ref*.5))+' kg × 8',fmtN(rd(ref*.7))+' kg × 4',fmtN(rd(ref*.85))+' kg × 2']:[fmtN(rd(ref*.6))+' kg × 6'];
-  else ramp=first?['La mitad del peso × 8','70% del peso × 4','85% del peso × 2']:['60% del peso × 6'];
+  if(d.bw)ramp=first?['5 reps fáciles sin lastre','2–3 reps sin lastre']:['1 serie fácil de 3–5 reps'];
+  else if(ref)ramp=first?[fmtN(rd(ref*.5))+' kg × 6',fmtN(rd(ref*.8))+' kg × 4']:[fmtN(rd(ref*.6))+' kg × 6'];
+  else ramp=first?['La mitad del peso × 6','80% del peso × 4']:['60% del peso × 6'];
   const open=UI.warm===ei;
   return `<div class="warm"><button class="row between" data-a="warm" data-e="${ei}" aria-expanded="${open}" style="width:100%"><span class="t" style="font-weight:600">Calentamiento · ${ramp.length} ${ramp.length===1?'serie':'series'} de aproximación</span><span class="muted">${open?'−':'+'}</span></button>
     ${open?`${first?'<div class="small muted">Antes de todo: 5 minutos de cardio suave para entrar en calor.</div>':''}
-    <div><div class="tag">Articulaciones (${MUSC[d.m].toLowerCase()})</div><ul class="cues" style="margin-top:6px">${(WARM[d.m]||[]).map(x=>`<li>${x}</li>`).join('')}</ul></div>
-    <div><div class="tag">Series de aproximación</div><div class="chips" style="margin-top:6px">${ramp.map(x=>`<span class="chip">${x}</span>`).join('')}</div><div class="small muted" style="margin-top:6px">Lejos del fallo y con 45–60 s de pausa: son para preparar, no para cansarte. No se anotan.</div></div>`:''}</div>`;
+    <div><div class="tag">Movilidad opcional (${MUSC[d.m].toLowerCase()})</div><ul class="cues" style="margin-top:6px">${(WARM[d.m]||[]).map(x=>`<li>${x}</li>`).join('')}</ul></div>
+    <div><div class="tag">Series de aproximación</div><div class="chips" style="margin-top:6px">${ramp.map(x=>`<span class="chip">${x}</span>`).join('')}</div><div class="small muted" style="margin-top:6px">Lejos del fallo: son para preparar, no para cansarte. No se anotan. En series de 10 o más reps los estudios no muestran que rindas más por calentar, así que ahí podés saltearlas.</div></div>`:''}</div>`;
 }
 const FAT=['','Fresco, podía seguir','Bien','Cansado normal','Muy cansado','Destruido'];
 
@@ -839,6 +840,7 @@ function render(){
   const p=profile(),main=$('#main'),nav=$('#nav');
   if(!p){nav.style.display='none';main.innerHTML=S.mode==='cargando'?'<div class="wrap">'+head('Un momento','Cargando tus datos')+'</div>':(!cfg()&&!UI.skipSetup?vSetup():vOnboard());renderSheet();setSync();return}
   if(S.mode!=='cargando'&&!program())put('program',presetProgram('franopt',0),0);
+  if(S.mode!=='cargando'&&program()&&program().days.some(d=>WD.test(d.name)))saveProgram(p=>p.days.forEach(d=>d.name=d.name.replace(WD,'')));
   keepAwake(UI.tab==='session'&&!!active());
   if(UI.tab==='session'&&active()){nav.style.display='none';main.innerHTML=vSession();tickTimer();renderSheet();return}
   if(UI.tab==='session')UI.tab='hoy';
@@ -885,7 +887,7 @@ function vHoy(){
     h+=`<div class="card hero"><div class="eyebrow">Entrenamiento en curso</div><h2>${esc(act.dayName)}</h2><div class="muted small">Empezó ${new Date(act.start).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})} · ${act.ex.reduce((n,e)=>n+e.sets.filter(s=>s.done).length,0)} series hechas</div><button class="btn inv block" data-a="resume">Continuar</button></div>`;
   }else if(pr){
     const ni=nextIdx(),d=pr.days[ni],did=attended()[t];
-    h+=`<div class="card hero"><div class="row between"><div class="eyebrow">${did?'Ya entrenaste hoy · siguiente':'Te toca hoy'}</div><div class="eyebrow">${planIdx()>=0?esc(pr.name.split(' · ')[0])+' · ':''}Semana ${wk}${planIdx()>=0?' de '+PLAN[planIdx()].w:''}${isDeload()?' · descarga':''}</div></div>
+    h+=`<div class="card hero"><div class="row between"><div class="eyebrow">${did?'Ya entrenaste hoy · sigue el':'Te toca el'} día ${ni+1} de ${pr.days.length}</div><div class="eyebrow">${planIdx()>=0?esc(pr.name.split(' · ')[0])+' · ':''}Semana ${wk}${planIdx()>=0?' de '+PLAN[planIdx()].w:''}${isDeload()?' · descarga':''}</div></div>
       <h2>${esc(d.name)}</h2><div class="muted small">${d.ex.length} ejercicios · ${d.ex.reduce((n,e)=>n+e.sets,0)} series · ${esc(d.ex.slice(0,3).map(e=>ex(e.exId).n).join(', '))}…</div>
       <div class="row"><button class="btn inv grow" data-a="start" data-v="${ni}">Empezar entrenamiento</button><button class="btn hero2" data-a="pickday" aria-label="Elegir otro día">Otro día</button></div></div>`;
   }
@@ -897,7 +899,7 @@ function vHoy(){
   if(ph&&!act&&wk>ph.w)h+=`<div class="banner" style="background:var(--good-soft)"><div><b>Terminaste las ${ph.w} semanas de la ${esc(pr.name)}.</b> Te toca la ${esc(PRESET[nxp.k].name)}: ${esc(nxp.d)}</div><div class="row wrapx"><button class="btn sm primary" data-a="phasego" data-v="${(pi+1)%PLAN.length}">Empezar ${esc(PRESET[nxp.k].name.split(' · ')[0])}</button><button class="btn sm" data-a="phase" data-v="${(pi+1)%PLAN.length}">Ver qué trae</button></div></div>`;
   else if(ph&&!act&&wk===ph.w&&!isDeload())h+=`<div class="banner"><div><b>Última semana de la ${esc(pr.name)}.</b> Hacela de descarga (mitad de series, lejos del fallo) y la semana que viene arrancás la ${esc(PRESET[nxp.k].name)} recuperado.</div><div class="row wrapx"><button class="btn sm" data-a="deload">Hacer descarga esta semana</button></div></div>`;
   if(!ph&&pr&&!act&&wk>=7&&!isDeload())h+=`<div class="banner"><div><b>Llevás ${wk} semanas con esta rutina.</b> Si venís cansado o estancado, una semana de descarga (mitad de series, lejos del fallo) ayuda a recuperar. Después de 8 a 12 semanas conviene generar una rutina nueva.</div><div class="row wrapx"><button class="btn sm" data-a="deload">Hacer descarga esta semana</button><button class="btn sm" data-a="genopen">Generar rutina nueva</button></div></div>`;
-  h+=`<div class="grid2"><div class="card"><div class="row between"><div><h3>Esta semana</h3><div class="small muted">${wc>=goal?'Objetivo cumplido':(goal-wc)+(goal-wc===1?' día':' días')+' para tu objetivo de '+goal}</div></div>${ring(wc,goal)}</div>${weekStrip()}
+  h+=`<div class="grid2"><div class="card"><div class="row between"><div><h3>Esta semana</h3><div class="small muted">${(()=>{const rem=goal-wc,left=7-(new Date().getDay()+6)%7-(attended()[t]?1:0);return rem<=0?'Objetivo de '+goal+' días cumplido':left>=rem?'Te faltan '+rem+' y quedan '+left+(left===1?' día':' días')+' en la semana':'Esta semana llegás a '+(wc+left)+' como máximo'})()}</div></div>${ring(wc,goal)}</div>${weekStrip()}
     ${!attended()[t]&&!act?'<button class="btn sm ghost" data-a="manual">Fui hoy sin registrar</button>':''}</div>`;
   h+=`<div class="card"><div class="row between"><h3>Suplementos de hoy</h3><button class="btn sm ghost" data-a="tab" data-v="perfil">Editar</button></div>`;
   if(!supps().length)h+='<div class="muted small">No tenés suplementos cargados. Agregalos desde Perfil.</div>';
@@ -1044,7 +1046,7 @@ function coach(){
   const lst=a=>a.slice(0,3).join(', ')+(a.length>3?' y '+(a.length-3)+' más':'');
   if(up.length)out.push(['good','Vas subiendo en '+lst(up)+'. Seguí con el mismo plan.']);
   if(stuck.length)out.push(['warn','Sin mejora en las últimas 3 sesiones: '+lst(stuck)+'. Probá sumar una serie, o bajar 10% el peso y volver a subir sumando reps.']);
-  if(drop.length)out.push(['warn','Las repeticiones caen mucho entre series en '+lst(drop)+'. Descansá 2–3 minutos, o bajá 5–10% el peso después de la primera serie para quedarte en el rango.']);
+  if(drop.length)out.push(['warn','Las repeticiones caen mucho entre series en '+lst(drop)+'. Descansá al menos 1 minuto y medio, o bajá 5–10% el peso después de la primera serie para quedarte en el rango.']);
   if(helped.length)out.push(['warn','Necesitaste ayuda desde la primera serie dos veces seguidas en '+lst(helped)+'. El peso te queda grande: bajá un escalón.']);
   if(avg!=null&&rirs.length>=10&&avg>=3)out.push(['warn','Estás terminando lejos del fallo (promedio '+fmtN(Math.round(avg*10)/10)+' reps en reserva). Para crecer, la mayoría de las series deberían quedar entre 0 y 2.']);
   if(avg!=null&&rirs.length>=10&&avg<.5&&fa!=null&&fa>=4)out.push(['warn','Casi todo al fallo y terminás muy cansado. Dejá 1–2 reps en reserva en las primeras series de cada ejercicio y guardá el fallo para la última.']);
@@ -1093,12 +1095,12 @@ function vTecnica(){
   `<input class="inp" id="lib-q" data-in="libq" placeholder="Buscar ejercicio" value="${esc(UI.libQ)}" aria-label="Buscar ejercicio">
    <div class="chips scroll"><button class="chip ${!UI.libM?'on':''}" data-a="libm" data-v="">Todos</button>${Object.keys(MUSC).map(m=>`<button class="chip ${UI.libM===m?'on':''}" data-a="libm" data-v="${m}">${MUSC[m]}</button>`).join('')}</div>
    ${!q&&!UI.libM?`<details class="card"><summary><h3 style="display:inline">Cómo ordenar pesos y series</h3></summary><ul class="cues" style="margin-top:12px">
-     <li><b>Lo más pesado primero.</b> El ejercicio compuesto grande va al principio, con las series de aproximación antes.</li>
-     <li><b>Mismo peso en todas las series</b> mientras te mantengas en el rango de reps. Es lo más simple para medir el progreso.</li>
-     <li><b>Si las reps se caen del rango, bajá 5–10%</b> en las series siguientes. Sirve más que forzar reps feas.</li>
-     <li><b>No subas el peso serie a serie</b> salvo en el calentamiento: llegás cansado a la serie que más importa.</li>
-     <li><b>Ayuda de un compañero:</b> como mucho 1–2 reps y solo en la última serie. Si te ayudan desde la primera, sobra peso.</li>
-     <li><b>Drop set:</b> solo al final, en ejercicios de máquina o polea.</li></ul></details>`:''}
+     <li><b>Primero lo que más querés mejorar.</b> Para el tamaño del músculo el orden casi no cambia el resultado; la fuerza sí sube más en lo que hacés primero.</li>
+     <li><b>Mismo peso en todas las series</b> es lo más simple para medir el progreso. Subir el peso serie a serie (pirámide) dio el mismo crecimiento en estudios, así que es cuestión de gusto.</li>
+     <li><b>Si las reps se caen del rango, bajá 5–10%</b> en las series siguientes, o descansá más.</li>
+     <li><b>Descanso:</b> más de 1 minuto rinde un poco más; pasar de 1 minuto y medio ya no suma para crecer. En los ejercicios pesados podés tomarte más para sostener el peso.</li>
+     <li><b>Ayuda de un compañero:</b> las reps forzadas no dieron más fuerza en estudios. Usalas poco y solo en la última serie; si te ayudan desde la primera, sobra peso.</li>
+     <li><b>Drop set:</b> mismo crecimiento que las series normales en menos tiempo. Solo al final, en máquina o polea.</li></ul></details>`:''}
    <div class="card" id="lib-list">${libList(list)}</div>`;
 }
 function libList(list){return list.length?'<div class="list">'+list.map(e=>`<button class="li" data-a="tech" data-v="${esc(e.id)}"><span class="grow"><span class="t">${esc(e.n)}</span><br><span class="small muted">${MUSC[e.m]} · ${esc(e.eq)}</span></span><span class="muted">›</span></button>`).join('')+'</div>':'<div class="muted">No hay ejercicios con ese nombre.</div>'}
@@ -1177,7 +1179,7 @@ function shConfirm(s){return {title:s.title,html:`<div>${esc(s.text)}</div><div 
 function shPhase(s){
   const f=PLAN[s.i],p=PRESET[f.k],cur=s.i===planIdx();
   return {title:p.name,html:`<div class="small muted">${esc(f.d)} Dura ${f.w} semanas; la última es de descarga.</div>
-    ${p.days.map(([n,e])=>`<div><div class="tag" style="margin-bottom:6px">${esc(n)}</div><div class="small">${e.map(x=>esc(ex(x.exId).n)+' <span class="muted">'+x.sets+'×'+x.lo+'–'+x.hi+'</span>').join(' · ')}</div></div>`).join('')}
+    ${p.days.map(([n,e])=>`<div><div class="tag" style="margin-bottom:6px">${esc(n.replace(WD,''))}</div><div class="small">${e.map(x=>esc(ex(x.exId).n)+' <span class="muted">'+x.sets+'×'+x.lo+'–'+x.hi+'</span>').join(' · ')}</div></div>`).join('')}
     ${cur?'<div class="hint">Es la fase que estás haciendo ahora.</div>':`<button class="btn primary block" data-a="phasego" data-v="${s.i}">Empezar esta fase ahora</button><div class="small muted">Tu historial de pesos se conserva.</div>`}`};
 }
 function shFatigue(){return {title:'¿Qué tan cansado terminaste?',html:`<div class="small muted">Con esto la app detecta fatiga acumulada y te avisa cuándo conviene una descarga.</div><div class="list">${[1,2,3,4,5].map(v=>`<button class="li" data-a="fat" data-v="${v}"><span class="num" style="font-size:24px;width:28px">${v}</span><span class="grow t">${FAT[v]}</span><span class="muted">›</span></button>`).join('')}</div><button class="btn ghost block" data-a="fat" data-v="0">Guardar sin responder</button>`}}
@@ -1185,6 +1187,7 @@ function shRenew(){const g=(profile()||{}).gym||{};const base=g.until&&g.until>t
 function shSummary(s){
   return {title:'Entrenamiento guardado',html:`<div class="tiles"><div class="tile"><div class="num">${s.min}</div><div class="lbl">minutos</div></div><div class="tile"><div class="num">${s.sets}</div><div class="lbl">series</div></div><div class="tile"><div class="num">${s.reps}</div><div class="lbl">repeticiones</div></div></div><div class="small muted">${fmtN(Math.round(s.vol))} kg movidos en total.</div>${s.gt?`<div class="row"><span class="chip ${s.gm===s.gt?'good':s.gm>=s.gt/2?'':'warn'}">Objetivos logrados: ${s.gm} de ${s.gt} series</span></div>`:''}
     ${s.prs.length?`<div><div class="tag" style="margin-bottom:8px">Récords de hoy</div><div class="chips">${s.prs.map(p=>`<span class="chip good">${esc(p)}</span>`).join('')}</div></div>`:''}
+    ${s.nextG&&s.nextG.length?`<div><div class="tag" style="margin-bottom:4px">Tus objetivos para la próxima vez</div><div class="list">${s.nextG.map(g=>`<div class="li"><span class="grow"><span class="t">${esc(g[0])}</span><br><span class="small muted">${g[2]?'Sube el peso':'Mismo peso, más reps'}</span></span><span class="num" style="font-size:16px;text-align:right">${esc(g[1])}</span></div>`).join('')}</div></div>`:''}
     <div class="muted small">${s.week} de ${s.goal} días esta semana.</div><button class="btn primary block" data-a="close">Listo</button>`};
 }
 function shWorkout(s){
@@ -1212,12 +1215,12 @@ function finish(fat){
     if(hist.length){const old=bestOf(e.exId,[].concat(...hist.map(x=>x.sets)));if(now.v>old.v+1e-6)prs.push(ex(e.exId).n+': '+fmtN(now.set[0])+' kg × '+now.set[1])}
     e.sets.forEach(s=>{sets++;reps+=s[1];vol+=s[0]*s[1]});
   });
-  const end=Date.now();
+  const end=Date.now(),doneEx=a.ex.filter(e=>e.sets.some(x=>x.done));
   put('w_'+a.start,{date:a.date,start:a.start,end,dayId:a.dayId,dayName:a.dayName,deload:!!a.deload,ex:exs,note:a.note||'',fat:fat||null,goals:gt?[gm,gt]:null,gym:((profile()||{}).gym||{}).name||''},0);
   put('active',undefined,0);
   const pr=program();if(pr&&a.dayIdx!=null&&pr.days[a.dayIdx]&&pr.days[a.dayIdx].id===a.dayId)saveProgram(p=>p.next=(a.dayIdx+1)%p.days.length);
   UI.timer=null;UI.rirAsk=null;cancelBeep();UI.tab='hoy';
-  UI.sheet={t:'summary',min:Math.max(1,Math.round((end-a.start)/6e4)),sets,reps,vol,prs,gm,gt,week:weekCount(monday(today())),goal:(profile()||{}).days||5};
+  UI.sheet={t:'summary',min:Math.max(1,Math.round((end-a.start)/6e4)),sets,reps,vol,prs,gm,gt,nextG:a.deload?[]:doneEx.map(e=>{const tg=e.sets.map((_,k)=>suggest(e.exId,e.lo,e.hi,k,false)).filter(Boolean);if(!tg.length)return null;const same=tg.every(x=>x.w===tg[0].w);return [ex(e.exId).n,same?fmtN(tg[0].w)+' kg × '+(tg.every(x=>x.r===tg[0].r)?tg[0].r+' en cada serie':tg.map(x=>x.r).join(', ')):tg.map(x=>fmtN(x.w)+'×'+x.r).join(' · '),tg[0].top]}).filter(Boolean),week:weekCount(monday(today())),goal:(profile()||{}).days||5};
   render();
 }
 const ACT={

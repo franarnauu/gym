@@ -384,6 +384,17 @@ details.guide[open] .chev{transform:rotate(90deg)}
 details.guide[open] .glist{animation:gin .22s ease-out}
 @keyframes gin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){details.guide[open] .glist{animation:none}details.guide .chev{transition:none}}
+.ov.mid{align-items:center;padding:16px}.ov.mid .sheet{border-radius:24px;max-height:86%}
+.goal{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:14px;background:var(--surface2);border-left:3px solid var(--accent)}
+.goal.up{border-left-color:var(--good);background:var(--good-soft)}
+.goal b{font-size:19px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.goal .tag{margin:0}
+.warm{padding:10px 14px;gap:8px;background:transparent;border:1px solid var(--line)}
+.wsteps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:4px;font-weight:600}
+.sets .rirq{grid-column:1/-1;border:0;border-radius:14px;background:var(--surface2);padding:12px;gap:10px;border-top:0;outline:2px solid var(--accent)}
+.sets .rirq b{font-size:16px}.sets .rirq .tag{margin:0}
+.sets .rirq .btn{background:var(--surface);min-height:42px}
+.sets .rirq .btn.sel,.sets .rirq .btn.primary{background:var(--accent);color:var(--accent-ink)}
 </style>
 </head>
 <body>
@@ -829,11 +840,9 @@ function warmBlock(a,e,ei,ref){
   if(d.bw)ramp=first?['5 reps fáciles sin lastre','2–3 reps sin lastre']:['1 serie fácil de 3–5 reps'];
   else if(ref)ramp=first?[fmtN(rd(ref*.5))+' kg × 6',fmtN(rd(ref*.8))+' kg × 4']:[fmtN(rd(ref*.6))+' kg × 6'];
   else ramp=first?['La mitad del peso × 6','80% del peso × 4']:['60% del peso × 6'];
-  const open=UI.warm===ei;
-  return `<div class="warm"><button class="row between" data-a="warm" data-e="${ei}" aria-expanded="${open}" style="width:100%"><span class="t" style="font-weight:600">Calentamiento · ${ramp.length} ${ramp.length===1?'serie':'series'}</span><span class="muted">${open?'−':'+'}</span></button>
-    ${open?`${first?'<div class="small muted">Antes de todo: 5 minutos de cardio suave para entrar en calor.</div>':''}
-    <div><div class="tag">Movilidad opcional (${MUSC[d.m].toLowerCase()})</div><ul class="cues" style="margin-top:6px">${(WARM[d.m]||[]).map(x=>`<li>${x}</li>`).join('')}</ul></div>
-    <div><div class="tag">Series de aproximación</div><div class="chips" style="margin-top:6px">${ramp.map(x=>`<span class="chip">${x}</span>`).join('')}</div><div class="small muted" style="margin-top:6px">Lejos del fallo: son para preparar, no para cansarte. No se anotan. En series de 10 o más reps los estudios no muestran que rindas más por calentar, así que ahí podés saltearlas.</div></div>`:''}</div>`;
+  const open=UI.warm===ei,steps=(first?['5 minutos de cardio suave']:[]).concat(ramp);
+  return `<div class="warm"><button class="row between" data-a="warm" data-e="${ei}" aria-expanded="${open}" style="width:100%"><span><span class="t" style="font-weight:600">Entrada en calor</span> <span class="small muted">· opcional</span></span><span class="muted">${open?'Ocultar':'Ver'}</span></button>
+    ${open?`<ol class="wsteps">${steps.map(x=>`<li>${x}</li>`).join('')}</ol><div class="small muted">Fáciles, sin cansarte. No se anotan.</div>`:''}</div>`;
 }
 const FAT=['','Fresco, podía seguir','Bien','Cansado normal','Muy cansado','Destruido'];
 
@@ -1108,16 +1117,16 @@ function vSession(){
   a.ex.forEach((e,ei)=>{
     const d=ex(e.exId),hist=histOf(e.exId),last=hist.length?hist[hist.length-1]:null,sg0=suggest(e.exId,e.lo,e.hi,0,a.deload);
     const ssPrev=ei>0&&a.ex[ei-1].ss;
-    if(e.sets.every(x=>x.done)&&UI.openEx!==ei){h+=`<button class="card fold" id="ex-${ei}" data-a="exopen" data-e="${ei}" aria-label="Ver ${esc(d.n)}"><span class="ok">${ICON.check.replace('width="20" height="20"','width="16" height="16"')}</span><span class="grow"><span class="t" style="font-weight:600">${esc(d.n)}</span><br><span class="small muted">${e.sets.map(x=>esc(x.w)+'×'+esc(x.r)).join(' · ')}</span></span><span class="muted">›</span></button>`;return}
+    if(e.sets.every(x=>x.done)&&UI.openEx!==ei&&!(UI.rirAsk&&UI.rirAsk.ei===ei)){h+=`<button class="card fold" id="ex-${ei}" data-a="exopen" data-e="${ei}" aria-label="Ver ${esc(d.n)}"><span class="ok">${ICON.check.replace('width="20" height="20"','width="16" height="16"')}</span><span class="grow"><span class="t" style="font-weight:600">${esc(d.n)}</span><br><span class="small muted">${e.sets.map(x=>esc(x.w)+'×'+esc(x.r)).join(' · ')}</span></span><span class="muted">›</span></button>`;return}
     h+=`<div class="card ${ei===curEx?'cur':''}" id="ex-${ei}">${e.ss||ssPrev||e.tec?`<div class="chips">${e.ss?`<span class="chip on">Superserie con el siguiente</span>`:''}${ssPrev?`<span class="chip on">Superserie · 2.ª parte</span>`:''}${e.tec?`<span class="chip warn">${esc(e.tec)}</span>`:''}</div>`:''}<div class="exh"><div class="grow"><h3>${esc(dnm(d.n)[0])}</h3><div class="small muted">${dnm(d.n)[1]?esc(dnm(d.n)[1])+' · ':''}${e.sets.length} × ${e.lo}–${e.hi} · pausa ${mmss(restTier(e)[3])}–${mmss(restTier(e)[0])}</div></div><button class="btn sm" data-a="tech" data-v="${esc(e.exId)}">Técnica</button></div>`;
-    {const fs=e.sets[0];if(!e.sets.some(x=>x.done))h+=warmBlock(a,e,ei,num(fs.w)??(sg0?sg0.w:(last?last.sets[0][0]:null)))}
     {const lp=lastPain(e.exId);if(lp&&!e.pain)h+=`<div class="hint" style="background:var(--warn-soft)"><b>La última vez marcaste una molestia ${['','leve','media','fuerte'][lp]} acá.</b> Arrancá con menos peso y, si vuelve, cambiá el ejercicio.</div>`}
-    if(a.deload)h+='<div class="hint">Descarga: mismo peso de siempre, menos series y dejá 3–4 reps en reserva.</div>';
-    else if(sg0&&sg0.top)h+=`<div class="hint up"><b>Objetivo: subí a ${fmtN(sg0.w)} kg × ${sg0.r}</b><br><span class="small muted">${sg0.easy?'La última vez te sobraron 3 o más reps':'La última vez llegaste a '+e.hi+' en todas'}</span></div>`;
-    else if(sg0&&sg0.hard)h+=`<div class="hint"><b>Bajá a ${fmtN(sg0.w)} kg.</b> La última vez no llegaste a ${e.lo} reps en ninguna serie.</div>`;
+    if(a.deload)h+='<div class="goal"><div class="tag">Semana de descarga</div><b>Mismo peso, menos series</b><span class="small muted">Dejá 3 o 4 reps sin hacer</span></div>';
+    else if(sg0&&sg0.top)h+=`<div class="goal up"><div class="tag">Objetivo de hoy</div><b>Subí a ${fmtN(sg0.w)} kg × ${sg0.r}</b><span class="small muted">${sg0.easy?'La última vez te sobraron 3 o más reps':'La última vez llegaste a '+e.hi+' en todas'}</span></div>`;
+    else if(sg0&&sg0.hard)h+=`<div class="goal"><div class="tag">Objetivo de hoy</div><b>Bajá a ${fmtN(sg0.w)} kg</b><span class="small muted">La última vez no llegaste a ${e.lo} reps en ninguna serie</span></div>`;
     else if(sg0){const tg=e.sets.map((_,k)=>suggest(e.exId,e.lo,e.hi,k,false)),same=tg.every(t=>t.w===tg[0].w);
-      h+=`<div class="hint"><b>Objetivo: ${same?fmtN(tg[0].w)+' kg × '+tg.map(t=>t.r).join(', '):tg.map(t=>fmtN(t.w)+'×'+t.r).join(' · ')}</b><br><span class="small muted">Última vez: ${last.sets.map(x=>x[1]+(x[3]?' (+'+x[3]+' con ayuda)':'')).join(', ')} reps</span></div>`}
-    else h+=`<div class="hint">Primera vez: buscá un peso para ${e.lo}–${e.hi} reps con 1–2 en reserva.</div>`;
+      h+=`<div class="goal"><div class="tag">Objetivo de hoy</div><b>${same?fmtN(tg[0].w)+' kg × '+tg.map(t=>t.r).join(', '):tg.map(t=>fmtN(t.w)+'×'+t.r).join(' · ')}</b><span class="small muted">Última vez: ${last.sets.map(x=>x[1]+(x[3]?' (+'+x[3]+' con ayuda)':'')).join(', ')} reps</span></div>`}
+    else h+=`<div class="goal"><div class="tag">Primera vez</div><b>Buscá un peso para ${e.lo}–${e.hi} reps</b><span class="small muted">Que te queden 1 o 2 sin hacer</span></div>`;
+    {const fs=e.sets[0];if(!e.sets.some(x=>x.done))h+=warmBlock(a,e,ei,num(fs.w)??(sg0?sg0.w:(last?last.sets[0][0]:null)))}
     h+=`<div class="sets"><div class="hd">#</div><div class="hd">Anterior</div><div class="hd">${d.bw?'+ kg':'kg'}</div><div class="hd">Reps</div><div></div>`;
     e.sets.forEach((s,si)=>{
       const sg=suggest(e.exId,e.lo,e.hi,si,a.deload),pv=last?last.sets[Math.min(si,last.sets.length-1)]:null;
@@ -1125,11 +1134,17 @@ function vSession(){
       <div class="${s.done?'rowdone':''}"><input id="w-${ei}-${si}" inputmode="decimal" data-in="set" data-e="${ei}" data-s="${si}" data-k="w" value="${esc(s.w)}" placeholder="${sg?fmtN(sg.w):''}" aria-label="Peso serie ${si+1}"></div>
       <div class="${s.done?'rowdone':''}"><input id="r-${ei}-${si}" inputmode="numeric" data-in="set" data-e="${ei}" data-s="${si}" data-k="r" value="${esc(s.r)}" placeholder="${sg?sg.r:e.lo}" aria-label="Repeticiones serie ${si+1}"></div>
       <button class="chk ${s.done?'on':''} ${UI.justChk===ei+'-'+si?'pop':''}" data-a="chk" data-e="${ei}" data-s="${si}" aria-label="Marcar serie ${si+1} hecha" aria-pressed="${s.done?'true':'false'}">${s.done&&s.rir!=null?`<span class="num" style="font-size:15px;line-height:1">R${s.rir>=4?'4+':s.rir}</span>`:ICON.check}</button>`;
+      if(UI.rirAsk&&UI.rirAsk.ei===ei&&UI.rirAsk.si===si&&s.done){const al=s.as?s.as.l:0;
+        h+=`<div class="rirq" id="rirq"><div class="row between"><div><div class="tag">Serie ${si+1} anotada</div><b>¿Cuántas más podías hacer?</b></div><button class="btn sm primary" data-a="askdone">Listo</button></div>
+        <div class="row">${[0,1,2,3,4].map(v=>`<button class="btn sm grow ${s.rir===v?'sel':''}" data-a="rir" data-v="${v}">${v===0?'0':v===4?'4+':v}</button>`).join('')}</div>
+        <div class="small muted">0 = llegaste al fallo. Con esto se ajusta el descanso.</div>
+        <div class="tag" style="margin:4px 0 0">¿Te ayudaron a levantar?</div><div class="row">${['No','Poco','Medio','Mucho'].map((t,v)=>`<button class="btn sm grow ${al===v?'sel':''}" data-a="asl" data-v="${v}">${t}</button>`).join('')}</div>
+        ${al?`<div class="row between"><span class="small">Reps con ayuda</span><span class="step"><button data-a="asn" data-v="-1" aria-label="Menos">−</button><span>${s.as.n}</span><button data-a="asn" data-v="1" aria-label="Más">+</button></span></div>`:''}</div>`}
     });
     h+='</div>';
     const wRef=num(e.sets[0].w)??(sg0?sg0.w:null);
     if(d.eq==='Barra'&&wRef){const pl=platesFor(wRef);if(pl)h+=`<div class="plates">${fmtN(wRef)} kg · por lado: ${pl.map(p=>`<span class="plate k${String(p).split('.')[0]}">${fmtN(p)}</span>`).join('')}</div>`}
-    h+=`<div class="row wrapx"><button class="btn sm ghost" data-a="addset" data-e="${ei}">+ Serie</button>${e.sets.length>1?`<button class="btn sm ghost" data-a="delset" data-e="${ei}">− Serie</button>`:''}<button class="btn sm ghost" data-a="swap" data-e="${ei}">Cambiar ejercicio</button><button class="btn sm ghost ${e.pain?'danger':''}" data-a="pain" data-e="${ei}">${e.pain?'Molestia '+['','leve','media','fuerte'][e.pain]:'Me molesta'}</button></div></div>`;
+    h+=`<button class="btn sm ghost block ${e.pain?'danger':''}" data-a="exopts" data-e="${ei}">${e.pain?'Molestia '+['','leve','media','fuerte'][e.pain]+' · ':''}Opciones del ejercicio</button></div>`;
   });
   h+=`<button class="btn block" data-a="addex">+ Agregar ejercicio</button>
     <div class="field"><label for="snote">Notas de la sesión</label><textarea class="inp" id="snote" data-in="note" placeholder="Cómo te sentiste, molestias, sueño…">${esc(a.note||'')}</textarea></div>
@@ -1149,10 +1164,7 @@ function tickTimer(){
   if(r.dataset.k!==key||!r.firstChild){
     r.dataset.k=key;
     const al=qs&&qs.as?qs.as.l:0;
-    r.innerHTML=(q&&qs?`<div class="rirq"><div class="row between"><span class="small"><b>¿Cuántas reps más podías hacer solo?</b></span><button class="btn sm" data-a="askdone">Listo</button></div>
-      <div class="row">${[0,1,2,3,4].map(v=>`<button class="btn sm grow ${qs.rir===v?'sel':''}" data-a="rir" data-v="${v}">${v===0?'0 · fallo':v===4?'4+':v}</button>`).join('')}</div>
-      <div class="row"><span class="small" style="width:64px"><b>¿Ayuda?</b></span>${['No','Poca','Media','Mucha'].map((t,v)=>`<button class="btn sm grow ${al===v?'sel':''}" data-a="asl" data-v="${v}">${t}</button>`).join('')}</div>
-      ${al?`<div class="row between"><span class="small">Reps en las que te ayudaron</span><span class="step"><button data-a="asn" data-v="-1" aria-label="Menos">−</button><span>${qs.as.n}</span><button data-a="asn" data-v="1" aria-label="Más">+</button></span></div>`:''}</div>`:'')+
+    r.innerHTML=
       (UI.timer?`<div class="restline"><i id="rest-l"></i></div><div class="rest ${over?'over':end?'end':''}" role="timer"><span class="num" id="rest-n"></span><span class="grow small" style="line-height:1.25"><b>${over?'Te estás pasando':end?'¡A la siguiente serie!':'Descanso '+mmss(UI.timer.total)}</b>${over||end?'':`<br><span style="opacity:.75">${esc(UI.timer.why||'según el ejercicio')}</span>`}</span>${end?'':'<button class="btn sm" data-a="tadj" data-v="-15" aria-label="15 segundos menos">−15</button><button class="btn sm" data-a="tadj" data-v="15" aria-label="15 segundos más">+15</button>'}<button class="btn sm" data-a="tskip">${end?'Listo':'Saltar'}</button></div>`:'');
     if(end&&!over){try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
   }
@@ -1364,8 +1376,8 @@ function vPerfil(){
 function renderSheet(){
   const el=$('#sheet'),s=UI.sheet;
   if(!s){el.innerHTML='';return}
-  const body={tech:shTech,pick:shPick,editday:shEditDay,gen:shGen,confirm:shConfirm,summary:shSummary,pain:shPain,measure:shMeasure,activity:shActivity,feel:shFeel,photo:shPhoto,phase:shPhase,fatigue:shFatigue,renew:shRenew,workout:shWorkout,pickday:shPickDay}[s.t](s);
-  el.innerHTML=`<div class="ov" data-a="ovclose"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(body.title)}"><div class="sh"><h2>${esc(body.title)}</h2><button class="x" data-a="close" aria-label="Cerrar">${ICON.x}</button></div><div class="sb">${body.html}</div></div></div>`;
+  const body={tech:shTech,pick:shPick,editday:shEditDay,gen:shGen,confirm:shConfirm,summary:shSummary,pain:shPain,measure:shMeasure,activity:shActivity,feel:shFeel,go:shGo,exopts:shExOpts,photo:shPhoto,phase:shPhase,fatigue:shFatigue,renew:shRenew,workout:shWorkout,pickday:shPickDay}[s.t](s);
+  el.innerHTML=`<div class="ov ${({confirm:1,pain:1,feel:1,fatigue:1,go:1,exopts:1,renew:1,activity:1})[s.t]?'mid':''}" data-a="ovclose"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(body.title)}"><div class="sh"><h2>${esc(body.title)}</h2><button class="x" data-a="close" aria-label="Cerrar">${ICON.x}</button></div><div class="sb">${body.html}</div></div></div>`;
   startFig();
 }
 function shTech(s){
@@ -1430,6 +1442,11 @@ function shActivity(st){
     <div class="row"><div class="field grow"><label for="ac-m">Minutos</label><input class="inp" id="ac-m" inputmode="numeric" placeholder="Ej: 90" value="${esc(st.m||'')}"></div><div class="field grow"><label for="ac-k">Calorías (opcional)</label><input class="inp" id="ac-k" inputmode="numeric" placeholder="kcal" value="${esc(st.kc||'')}"></div></div>
     <div class="row"><button class="chip ${st.y?'':'on'}" data-a="actday" data-v="0">Hoy</button><button class="chip ${st.y?'on':''}" data-a="actday" data-v="1">Ayer</button></div>
     <button class="btn primary block" data-a="actsave">Guardar</button>`}}
+function shGo(st){const d=program().days[st.i],n=d.ex.reduce((x,e)=>x+e.sets,0),dl=isDeload(),mins=Math.round((dl?Math.ceil(n/2):n)*2.6/5)*5;
+  return {title:'¿Empezamos?',html:`<div class="goal"><div class="tag">${dl?'Semana de descarga':'Entrenamiento de hoy'}</div><b>${esc(dnm(d.name)[0])}</b><span class="small muted">${dnm(d.name)[1]?esc(dnm(d.name)[1])+' · ':''}${d.ex.length} ejercicios · unos ${mins} min</span></div>
+    <div class="row"><button class="btn grow" data-a="close">Todavía no</button><button class="btn grow primary" data-a="go">Empezar</button></div>`}}
+function shExOpts(st){const e=active().ex[st.ei],o=(f,t,d,c)=>`<button class="li" data-a="exopt" data-v="${f}" data-e="${st.ei}"><span class="grow"><span class="t" ${c?'style="color:var(--bad)"':''}>${t}</span><br><span class="small muted">${d}</span></span><span class="muted">›</span></button>`;
+  return {title:dnm(ex(e.exId).n)[0],html:`<div class="list">${o('addset','Agregar una serie','Queda con el mismo peso que la última')}${e.sets.length>1?o('delset','Quitar la última serie','Ahora tiene '+e.sets.length):''}${o('swap','Cambiar el ejercicio','Por otro del mismo músculo')}${o('pain',e.pain?'Cambiar la molestia marcada':'Me molesta o me duele','Queda anotado para la próxima vez',1)}</div>`}}
 function shFeel(st){const z=ZN[st.z],xl=extLoad(today());
   return {title:'¿Cómo estás hoy?',html:`<div class="small muted">Hiciste deporte (${esc(st.z==='p'?xl.txt:xl.txtA)}) y hoy trabajás ${z[0]}. ¿Cómo sentís ${z[1]}?</div>
     <div class="list"><button class="li" data-a="feel" data-v="0"><span class="grow"><span class="t">Bien, sin cansancio</span><br><span class="small muted">Entrenamiento normal</span></span><span class="muted">›</span></button>
@@ -1507,7 +1524,10 @@ const ACT={
     if(bw)setLogDay(today(),d=>d.bw=bw);
     UI.tab='hoy';render();
   },
-  start(el){const i=+el.dataset.v;if(active()){UI.sheet={t:'confirm',title:'Ya hay un entrenamiento en curso',text:'Terminá o descartá el entrenamiento actual antes de empezar otro.',ok:'Ir al entrenamiento',fn(){UI.tab='session';render()}};renderSheet();return}const z=extZone(program().days[i]);if(z){UI.sheet={t:'feel',i,z};renderSheet();return}startDay(i)},
+  start(el){const i=+el.dataset.v;if(active()){UI.sheet={t:'confirm',title:'Ya hay un entrenamiento en curso',text:'Terminá o descartá el entrenamiento actual antes de empezar otro.',ok:'Ir al entrenamiento',fn(){UI.tab='session';render()}};renderSheet();return}const z=extZone(program().days[i]);UI.sheet=z?{t:'feel',i,z}:{t:'go',i};renderSheet()},
+  go(){const i=UI.sheet.i;UI.sheet=null;renderSheet();startDay(i)},
+  exopts(el){UI.sheet={t:'exopts',ei:+el.dataset.e};renderSheet()},
+  exopt(el){const f=el.dataset.v;UI.sheet=null;renderSheet();ACT[f](el)},
   feel(el){const s=UI.sheet,v=+el.dataset.v;UI.sheet=null;renderSheet();startDay(s.i,v,s.z)},
   pickday(){UI.sheet={t:'pickday'};renderSheet()},
   resume(){UI.tab='session';render()},
@@ -1537,7 +1557,7 @@ const ACT={
   rir(el){const q=UI.rirAsk;if(!q)return;const a=clone(active()),st=a.ex[q.ei]&&a.ex[q.ei].sets[q.si];if(st)st.rir=+el.dataset.v;retime(a);saveActive(a,true);keepScroll(render)},
   asl(el){const q=UI.rirAsk;if(!q)return;const a=clone(active()),e=a.ex[q.ei],st=e&&e.sets[q.si];if(!st)return;const v=+el.dataset.v;if(v){st.as={n:st.as?st.as.n:1,l:v};st.rir=0}else delete st.as;regoal(a,q.ei,q.si);retime(a);saveActive(a,true);keepScroll(render)},
   asn(el){const q=UI.rirAsk;if(!q)return;const a=clone(active()),st=a.ex[q.ei]&&a.ex[q.ei].sets[q.si];if(!st||!st.as)return;st.as.n=Math.max(1,Math.min(Math.round(num(st.r)||1),st.as.n+(+el.dataset.v)));regoal(a,q.ei,q.si);saveActive(a,true);keepScroll(render)},
-  askdone(){UI.rirAsk=null;tickTimer()},
+  askdone(){UI.rirAsk=null;keepScroll(render)},
   warm(el){const v=+el.dataset.e;UI.warm=UI.warm===v?-1:v;keepScroll(render)},
   progm(el){UI.progM=el.dataset.v;render()},
   recall(){UI.recAll=true;render()},
@@ -1635,7 +1655,7 @@ function applyPick(id){
   UI.sheet=null;keepScroll(render);
 }
 function regoal(a,ei,si){const e=a.ex[ei],st=e.sets[si];if(st.gw==null)return;const own=Math.round(num(st.r)||0)-(st.as?st.as.n:0);st.g=e1rm(num(st.w)||0,own)>=e1rm(st.gw,st.gr)-1e-6?1:0}
-function keepScroll(fn){const sc=$('#sscroll'),t=sc?sc.scrollTop:0;fn();const n=$('#sscroll');if(n)n.scrollTop=t}
+function keepScroll(fn){const sc=$('#sscroll'),t=sc?sc.scrollTop:0;fn();const n=$('#sscroll');if(n){n.scrollTop=t;const q=$('#rirq');if(q){const a=q.getBoundingClientRect(),b=n.getBoundingClientRect();if(a.bottom>b.bottom-8)n.scrollTop+=a.bottom-b.bottom+12;else if(a.top<b.top)n.scrollTop-=b.top-a.top+12}}}
 
 document.addEventListener('click',ev=>{
   const el=ev.target.closest('[data-a]');if(!el)return;

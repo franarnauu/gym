@@ -11,10 +11,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Gym">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#ECEFF3" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0D1015" media="(prefers-color-scheme: dark)">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <style>
 /* Idea de layout: una columna de tarjetas pensada para el pulgar, números grandes tipo marcador,
    y los colores de los discos olímpicos (25 rojo, 20 azul, 15 amarillo, 10 verde) como código visual. */
@@ -208,6 +206,100 @@ a{color:var(--accent)}
   .sheet{animation:up .18s ease-out}
   @keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
 }
+
+/* ===== piel estilo iOS: tipografía del sistema, negro puro, acento naranja ===== */
+:root{
+  --bg:#F2F2F7; --surface:#FFFFFF; --surface2:#EFEFF4; --line:#E0E0E6;
+  --ink:#000000; --muted:#6C6C70;
+  --accent:#D9480F; --accent-ink:#FFFFFF; --accent-soft:#FFE8D6;
+  --good:#1F8A3B; --good-soft:#DDF5E3; --warn:#8A6A00; --warn-soft:#FFF4C2; --bad:#D70015; --bad-soft:#FDE2E4;
+  --p5:#E5E5EA; --p2:#2C2C2E; --p1:#8E8E93;
+  --hero-a:#FFB340; --hero-b:#FF6B1A;
+  --body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,"Segoe UI",Roboto,sans-serif;
+  --display:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,system-ui,"Segoe UI",Roboto,sans-serif;
+  --r:20px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000000; --surface:#1C1C1E; --surface2:#2C2C2E; --line:#38383A;
+    --ink:#FFFFFF; --muted:#98989F;
+    --accent:#FF9F0A; --accent-ink:#1A0D00; --accent-soft:#3A2405;
+    --good:#30D158; --good-soft:#0F3A1C; --warn:#FFD60A; --warn-soft:#3A3200; --bad:#FF453A; --bad-soft:#3D1513;
+    --p5:#E5E5EA; --p2:#48484A; --p1:#8E8E93;
+    --hero-a:#FFB340; --hero-b:#FF6B1A;
+    color-scheme:dark;}}
+:root[data-theme="dark"]{--bg:#000000; --surface:#1C1C1E; --surface2:#2C2C2E; --line:#38383A;
+    --ink:#FFFFFF; --muted:#98989F;
+    --accent:#FF9F0A; --accent-ink:#1A0D00; --accent-soft:#3A2405;
+    --good:#30D158; --good-soft:#0F3A1C; --warn:#FFD60A; --warn-soft:#3A3200; --bad:#FF453A; --bad-soft:#3D1513;
+    --p5:#E5E5EA; --p2:#48484A; --p1:#8E8E93;
+    --hero-a:#FFB340; --hero-b:#FF6B1A;
+    color-scheme:dark;}
+html,body{height:100%}
+@supports (height:100dvh){html,body{height:100dvh}}
+@media (display-mode:standalone){html,body{height:100vh}}
+body{font-size:16px;letter-spacing:-.01em}
+h1,h2,h3{font-family:var(--body);text-transform:none;letter-spacing:-.022em}
+h1{font-size:32px;font-weight:800;line-height:1.1}
+h2{font-size:22px;font-weight:700;line-height:1.2}
+h3{font-size:18px;font-weight:650}
+.eyebrow{font-size:14px;font-weight:600;text-transform:none;letter-spacing:0}
+.eyebrow::first-letter{text-transform:uppercase}
+.tag{font-size:13px;font-weight:600;text-transform:none;letter-spacing:0}
+.wrap{padding:14px 16px 28px;gap:12px}
+.top{align-items:flex-end;padding:6px 4px 2px}
+.sync{padding-bottom:9px}
+.card{border:0;padding:18px;gap:14px}
+.card.fold{padding:14px 18px}
+.card.cur{box-shadow:0 0 0 2px var(--accent)}
+.card.hero{background:linear-gradient(140deg,var(--hero-a),var(--hero-b));color:#1A0D00;padding:20px;gap:10px}
+.card.hero h2{font-size:26px;font-weight:800;line-height:1.12}
+.card.hero .muted,.card.hero .eyebrow{color:#1A0D00;opacity:.72}
+.card.hero .row{margin-top:6px}
+.btn{min-height:50px;border-radius:14px;border-color:transparent;background:var(--surface2);font-weight:600;letter-spacing:-.01em}
+.btn.sm{min-height:36px;border-radius:11px}
+.btn.ghost{background:transparent;border-color:var(--line)}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.inv{background:#0B0B0C;color:#FFFFFF}
+.btn.hero2{background:rgba(26,13,0,.12);color:#1A0D00;border-color:transparent}
+.chip{border-color:transparent;font-weight:600;font-size:13px;padding:6px 12px}
+.inp{border-color:transparent;border-radius:12px;height:48px}
+.sets input,.mini,.step{border-color:transparent}
+.sets input{height:46px;border-radius:12px;font-size:21px}
+.chk{height:46px;border-radius:12px;border-color:transparent;background:var(--surface2)}
+.chk.on{background:var(--good);color:#04210C}
+.sets .hd{font-size:11px}
+.hint{border-radius:12px;padding:10px 12px;font-size:14px}
+.sup{border-color:transparent;border-radius:14px;padding:14px}
+.sup .box{border-radius:50%;width:30px;height:30px}
+.sup.on .box{color:#04210C}
+.wd{font-size:12px;border-radius:12px}
+.wd b{width:34px;height:34px;border:0;background:var(--surface2);font-size:16px}
+.wd.done b{background:var(--good);color:#04210C}
+.wd.today{background:transparent}
+.wd.today b{box-shadow:0 0 0 2px var(--accent)}
+.wd.done.today b{box-shadow:none}
+.tile{border:0;padding:14px}
+.tile .num{font-size:30px}
+.li{padding:13px 0}
+.cal .c{border-radius:50%}
+.cal .c.on{color:#04210C}
+.banner{border-radius:16px}
+.sbar{border-bottom:0;background:var(--bg);padding:10px 16px}
+.x{background:var(--surface)}
+.sheet{border-radius:24px 24px 0 0}
+.sheet .sh{padding:20px 18px 10px}.sheet .sb{padding:4px 18px 24px}
+.rest{background:var(--surface);color:var(--ink);border-top:1px solid var(--line)}
+.rest .btn{background:var(--surface2);color:var(--ink);border-color:transparent}
+.rest.end{background:var(--good);color:#04210C}
+.restline{background:var(--surface2)}
+.rirq{border-top:1px solid var(--line)}
+.toast{background:var(--surface2);color:var(--ink);box-shadow:0 6px 24px rgba(0,0,0,.35);top:calc(env(safe-area-inset-top,0px) + 10px)}
+nav{background:var(--bg);border-top:1px solid var(--line);padding:6px 4px max(4px,calc(env(safe-area-inset-bottom,0px) - 12px))}
+nav button{font-size:10.5px;font-weight:600;gap:3px;padding:5px 2px}
+nav svg{width:25px;height:25px}
+.ring{flex:none}
+.ring text{font-family:var(--display);font-weight:700;font-size:15px;fill:var(--ink)}
+@media (min-width:880px){nav{padding:18px 10px;border-top:0}nav button{font-size:15px;padding:12px 14px}.sheet{border-radius:24px}}
 </style>
 </head>
 <body>
@@ -638,6 +730,7 @@ function vOnboard(){
   </div></div>`;
 }
 
+function ring(n,goal){const r=17,c=2*Math.PI*r,f=Math.min(1,goal?n/goal:0);return `<svg class="ring" width="46" height="46" viewBox="0 0 46 46" role="img" aria-label="${n} de ${goal} días"><circle cx="23" cy="23" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="5"/>${f>0?'':'<!--'}<circle cx="23" cy="23" r="${r}" fill="none" stroke="${f>=1?'var(--good)':'var(--accent)'}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(c*f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 23 23)"/>${f>0?'':'-->'}<text x="23" y="28" text-anchor="middle">${n}</text></svg>`}
 function weekStrip(){
   const mon=monday(today()),a=attended(),t=today();
   return '<div class="week">'+['L','M','M','J','V','S','D'].map((l,i)=>{const d=addDays(mon,i);return `<div class="wd ${a[d]?'done':''} ${d===t?'today':''}"><span>${l}</span><b>${a[d]?ICON.check.replace('width="20" height="20"','width="16" height="16"'):pdate(d).getDate()}</b></div>`}).join('')+'</div>';
@@ -651,7 +744,7 @@ function vHoy(){
     const ni=nextIdx(),d=pr.days[ni],did=attended()[t];
     h+=`<div class="card hero"><div class="row between"><div class="eyebrow">${did?'Ya entrenaste hoy · siguiente':'Te toca hoy'}</div><div class="eyebrow">${planIdx()>=0?esc(pr.name.split(' · ')[0])+' · ':''}Semana ${wk}${planIdx()>=0?' de '+PLAN[planIdx()].w:''}${isDeload()?' · descarga':''}</div></div>
       <h2>${esc(d.name)}</h2><div class="muted small">${d.ex.length} ejercicios · ${d.ex.reduce((n,e)=>n+e.sets,0)} series · ${esc(d.ex.slice(0,3).map(e=>ex(e.exId).n).join(', '))}…</div>
-      <div class="row"><button class="btn inv grow" data-a="start" data-v="${ni}">Empezar entrenamiento</button><button class="btn inv" data-a="pickday" aria-label="Elegir otro día">Otro día</button></div></div>`;
+      <div class="row"><button class="btn inv grow" data-a="start" data-v="${ni}">Empezar entrenamiento</button><button class="btn hero2" data-a="pickday" aria-label="Elegir otro día">Otro día</button></div></div>`;
   }
   const gi=gymInfo();
   if(gi&&gi.left!=null&&gi.left<=7)h+=`<div class="banner" style="${gi.left<0?'background:var(--bad-soft)':''}"><div><b>${gi.left<0?'Tu pase libre venció el '+fmtD(gi.g.until):gi.left===0?'Tu pase libre vence hoy':'Tu pase libre vence en '+gi.left+(gi.left===1?' día':' días')}.</b> ${esc(gi.g.name||'')}${gi.left>=0?' · hasta el '+fmtD(gi.g.until,{weekday:'long',day:'numeric',month:'long'}):''}</div><div class="row wrapx"><button class="btn sm" data-a="renew">Ya renové</button></div></div>`;
@@ -661,7 +754,7 @@ function vHoy(){
   if(ph&&!act&&wk>ph.w)h+=`<div class="banner" style="background:var(--good-soft)"><div><b>Terminaste las ${ph.w} semanas de la ${esc(pr.name)}.</b> Te toca la ${esc(PRESET[nxp.k].name)}: ${esc(nxp.d)}</div><div class="row wrapx"><button class="btn sm primary" data-a="phasego" data-v="${(pi+1)%PLAN.length}">Empezar ${esc(PRESET[nxp.k].name.split(' · ')[0])}</button><button class="btn sm" data-a="phase" data-v="${(pi+1)%PLAN.length}">Ver qué trae</button></div></div>`;
   else if(ph&&!act&&wk===ph.w&&!isDeload())h+=`<div class="banner"><div><b>Última semana de la ${esc(pr.name)}.</b> Hacela de descarga (mitad de series, lejos del fallo) y la semana que viene arrancás la ${esc(PRESET[nxp.k].name)} recuperado.</div><div class="row wrapx"><button class="btn sm" data-a="deload">Hacer descarga esta semana</button></div></div>`;
   if(!ph&&pr&&!act&&wk>=7&&!isDeload())h+=`<div class="banner"><div><b>Llevás ${wk} semanas con esta rutina.</b> Si venís cansado o estancado, una semana de descarga (mitad de series, lejos del fallo) ayuda a recuperar. Después de 8 a 12 semanas conviene generar una rutina nueva.</div><div class="row wrapx"><button class="btn sm" data-a="deload">Hacer descarga esta semana</button><button class="btn sm" data-a="genopen">Generar rutina nueva</button></div></div>`;
-  h+=`<div class="grid2"><div class="card"><div class="row between"><h3>Esta semana</h3><span class="chip ${wc>=goal?'good':''}">${wc} de ${goal} días</span></div>${weekStrip()}
+  h+=`<div class="grid2"><div class="card"><div class="row between"><div><h3>Esta semana</h3><div class="small muted">${wc>=goal?'Objetivo cumplido':(goal-wc)+(goal-wc===1?' día':' días')+' para tu objetivo de '+goal}</div></div>${ring(wc,goal)}</div>${weekStrip()}
     ${!attended()[t]&&!act?'<button class="btn sm ghost" data-a="manual">Fui hoy sin registrar</button>':''}</div>`;
   h+=`<div class="card"><div class="row between"><h3>Suplementos de hoy</h3><button class="btn sm ghost" data-a="tab" data-v="perfil">Editar</button></div>`;
   if(!supps().length)h+='<div class="muted small">No tenés suplementos cargados. Agregalos desde Perfil.</div>';

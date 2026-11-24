@@ -920,6 +920,8 @@ function setSync(){
   }else if(S.mode==='lento'){c='busy';t='Sin conexión; guardado acá'}
   el.className='sync '+c;el.lastChild.textContent=t;
 }
+/* Trae al documento local lo que mandó el reloj (pasos, calorías, sueño, actividades) sin tocar lo que el usuario cargó a mano. */
+function mergeWatch(loc,srv){let ch=false;loc.d=loc.d||{};Object.keys(srv.d||{}).forEach(k=>{const o=srv.d[k];if(!o||!o.hs)return;const n=loc.d[k]=loc.d[k]||{};if(n.hs>=o.hs)return;['st','kc','sl','sw','hs'].forEach(f=>{if(o[f]!=null)n[f]=o[f]});const w=(o.ac||[]).filter(a=>a.w);if(w.length||(n.ac||[]).some(a=>a.w)){n.ac=(n.ac||[]).filter(a=>!a.w).concat(w);if(!n.ac.length)delete n.ac}ch=true});return ch}
 async function pull(){
   if(!S.col||S.pulling)return;
   S.pulling=1;const started=Date.now(),full=!S.since;let changed=false;
@@ -928,7 +930,7 @@ async function pull(){
     const seen={};
     j.items.forEach(it=>{
       seen[it.id]=1;
-      if(S.dirty[it.id]||S.writing[it.id]||(S.pushed[it.id]||0)>started)return;
+      if(S.dirty[it.id]||S.writing[it.id]||(S.pushed[it.id]||0)>started){if(/^log_/.test(it.id)&&it.d&&S.docs[it.id]&&mergeWatch(S.docs[it.id],it.d)){changed=true;saveLocal()}return}
       if(it.d==null){if(it.id in S.docs){delete S.docs[it.id];changed=true}}
       else if(JSON.stringify(S.docs[it.id])!==JSON.stringify(it.d)){S.docs[it.id]=it.d;changed=true}
     });
@@ -1103,13 +1105,13 @@ function weekStrip(){
   return '<div class="week">'+['L','M','M','J','V','S','D'].map((l,i)=>{const d=addDays(mon,i);return `<div class="wd ${a[d]?'done':''} ${d===t?'today':''}"><span>${l}</span><b>${a[d]?ICON.check.replace('width="20" height="20"','width="16" height="16"'):pdate(d).getDate()}</b></div>`}).join('')+'</div>';
 }
 function slRow(){const ld=logDay(today()),v=ld.sw?ld.sl:null,st=habStreak(d=>d.sw&&d.sl>=7);
-  const sub=v?(v>=7?'7 horas o más':'Menos de 7 horas')+(st?' · racha '+st+' d':''):ld.hs?'Reloj sincronizado · sin sueño anoche':'Sin datos del reloj todavía';
+  const sub=v?(v>=7?'7 horas o más':'Menos de 7 horas')+(st?' · racha '+st+' d':''):ld.hs?'Reloj sincronizado · sin sueño anoche':'Llega cuando corre el atajo';
   return `<div id="sl-row" class="sup ${v>=7?'on':''}"><span class="grow"><span class="t" style="font-weight:600">Sueño de anoche</span><br><span class="small muted">${sub}</span></span><span class="num" style="font-size:22px;white-space:nowrap">${v?fmtN(v)+' h':'—'}</span></div>`}
 function vHoy(){
   const p=profile(),pr=program(),t=today(),act=active(),goal=p.days||5,wc=weekCount(monday(t)),wk=blockWeek(),ld=logDay(t);
   let h=head(fmtD(t,{weekday:'long',day:'numeric',month:'long'}),p.name?'Hola, '+String(p.name).trim().split(/\s+/)[0]:'Hola');
   if(act){
-    h+=`<div class="card hero"><div class="eyebrow">Entrenamiento en curso</div><h2>${esc(dnm(act.dayName)[0])}</h2><div class="muted small">Empezó ${new Date(act.start).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})} · ${act.ex.reduce((n,e)=>n+e.sets.filter(s=>s.done).length,0)} series hechas</div><button class="btn inv block" data-a="resume">Continuar</button></div>`;
+    h+=`<div class="card hero"><div class="eyebrow">${Date.now()-(act.last||act.start)>90*6e4?'Quedó abierto · sin series hace '+Math.round((Date.now()-(act.last||act.start))/36e5)+' h':'Entrenamiento en curso'}</div><h2>${esc(dnm(act.dayName)[0])}</h2><div class="muted small">Empezó ${new Date(act.start).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})} · ${act.ex.reduce((n,e)=>n+e.sets.filter(s=>s.done).length,0)} series hechas</div><button class="btn inv block" data-a="resume">Continuar</button></div>`;
   }else if(pr){
     const ni=nextIdx(),d=pr.days[ni],did=attended()[t];
     const zHoy=extZone(d),xlHoy=extLoad(t);
@@ -1538,7 +1540,7 @@ function finish(fat){
     if(hist.length){const old=bestOf(e.exId,[].concat(...hist.map(x=>x.sets)));if(now.v>old.v+1e-6)prs.push(ex(e.exId).n+': '+fmtN(now.set[0])+' kg × '+now.set[1])}
     e.sets.forEach(s=>{sets++;reps+=s[1];vol+=s[0]*s[1]});
   });
-  const end=Date.now(),doneEx=a.ex.filter(e=>e.sets.some(x=>x.done));
+  const end=a.last&&Date.now()-a.last>30*6e4?a.last+2*6e4:Date.now(),doneEx=a.ex.filter(e=>e.sets.some(x=>x.done));
   put('w_'+a.start,{date:a.date,start:a.start,end,dayId:a.dayId,dayName:a.dayName,deload:!!a.deload,ext:a.ext||0,extZ:a.extZ||'',ex:exs,note:a.note||'',fat:fat||null,over:a.over||0,goals:gt?[gm,gt]:null,gym:((profile()||{}).gym||{}).name||''},0);
   put('active',undefined,0);
   const pr=program();if(pr&&a.dayIdx!=null&&pr.days[a.dayIdx]&&pr.days[a.dayIdx].id===a.dayId)saveProgram(p=>p.next=(a.dayIdx+1)%p.days.length);
@@ -1585,7 +1587,7 @@ const ACT={
       s.w=fmtN(w);s.r=String(Math.round(r));s.done=true;
       for(let k=si+1;k<e.sets.length;k++)if(!e.sets[k].done&&e.sets[k].w==='')e.sets[k].w=s.w;
       const more=a.ex.some(x=>x.sets.some(y=>!y.done)),nx=a.ex[ei+1];
-      UI.rirAsk={ei,si};UI.justChk=ei+'-'+si;if(UI.openEx===ei&&e.sets.every(x=>x.done))UI.openEx=null;
+      a.last=Date.now();UI.rirAsk={ei,si};UI.justChk=ei+'-'+si;if(UI.openEx===ei&&e.sets.every(x=>x.done))UI.openEx=null;
       closeRest(a);
       if(e.ss&&nx&&nx.sets[si]&&!nx.sets[si].done){toast('Superserie: seguí con '+ex(nx.exId).n+' sin descansar')}
       else if(more)startRest(e,s,ei,si);

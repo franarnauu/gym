@@ -919,6 +919,7 @@ function workouts(){return Object.keys(S.docs).filter(k=>k.startsWith('w_')).map
 function logDay(d){const m=S.docs['log_'+d.slice(0,7)];return (m&&m.d&&m.d[d.slice(8)])||{}}
 function setLogDay(d,fn){const id='log_'+d.slice(0,7);const m=clone(S.docs[id]||{d:{}});const k=d.slice(8);m.d[k]=m.d[k]||{};fn(m.d[k]);put(id,m)}
 function supps(){const p=profile();return (p&&p.supps)||[]}
+function logSeries(f,days){const out=[];for(let i=days-1;i>=0;i--){const d=addDays(today(),-i),v=logDay(d)[f];if(v)out.push({d,v})}return out}
 function bwSeries(){const out=[];Object.keys(S.docs).filter(k=>k.startsWith('log_')).sort().forEach(k=>{const m=S.docs[k];Object.keys(m.d||{}).sort().forEach(dd=>{if(m.d[dd].bw!=null)out.push({d:k.slice(4)+'-'+dd,v:m.d[dd].bw})})});return out}
 const lastBw=()=>{const s=bwSeries();return s.length?s[s.length-1].v:null};
 function attended(){const set={};workouts().forEach(w=>set[w.date]=1);return set}
@@ -1057,7 +1058,9 @@ function weekStrip(){
   const mon=monday(today()),a=attended(),t=today();
   return '<div class="week">'+['L','M','M','J','V','S','D'].map((l,i)=>{const d=addDays(mon,i);return `<div class="wd ${a[d]?'done':''} ${d===t?'today':''}"><span>${l}</span><b>${a[d]?ICON.check.replace('width="20" height="20"','width="16" height="16"'):pdate(d).getDate()}</b></div>`}).join('')+'</div>';
 }
-function slRow(){const ld=logDay(today()),st=habStreak(d=>d.sl>=7);return `<div id="sl-row" class="sup ${ld.sl>=7?'on':''}"><span class="grow"><span class="t" style="font-weight:600">Sueño de anoche</span><br><span class="small muted">${ld.sl?(ld.sl>=7?'7 horas o más':'Menos de 7 horas'):'Horas dormidas'}${st?' · racha '+st+' d':''}</span></span><span class="step"><button data-a="hab" data-k="sl" data-v="-0.5" aria-label="Menos horas">−</button><span style="min-width:44px">${ld.sl?fmtN(ld.sl)+' h':'—'}</span><button data-a="hab" data-k="sl" data-v="0.5" aria-label="Más horas">+</button></span></div>`}
+function slRow(){const ld=logDay(today()),v=ld.sw?ld.sl:null,st=habStreak(d=>d.sw&&d.sl>=7);
+  const sub=v?(v>=7?'7 horas o más':'Menos de 7 horas')+(st?' · racha '+st+' d':''):ld.hs?'Reloj sincronizado · sin sueño anoche':'Sin datos del reloj todavía';
+  return `<div id="sl-row" class="sup ${v>=7?'on':''}"><span class="grow"><span class="t" style="font-weight:600">Sueño de anoche</span><br><span class="small muted">${sub}</span></span><span class="num" style="font-size:22px;white-space:nowrap">${v?fmtN(v)+' h':'—'}</span></div>`}
 function vHoy(){
   const p=profile(),pr=program(),t=today(),act=active(),goal=p.days||5,wc=weekCount(monday(t)),wk=blockWeek(),ld=logDay(t);
   let h=head(fmtD(t,{weekday:'long',day:'numeric',month:'long'}),p.name?'Hola, '+String(p.name).trim().split(/\s+/)[0]:'Hola');
@@ -1086,7 +1089,7 @@ function vHoy(){
   {const st=habStreak(d=>d.pr);h+=`<button class="sup ${ld.pr?'on':''}" data-a="habpr" aria-pressed="${ld.pr?'true':'false'}"><span class="box">${ld.pr?ICON.check:''}</span><span class="grow"><span class="t" style="font-weight:600">Proteína</span><br><span class="small muted">En cada comida de hoy</span></span><span class="num stk">${st?st+' d':''}</span></button>`}
   h+=slRow();
   {let wk=0,kc=0;for(let i=0;i<7;i++){const l=logDay(addDays(monday(t),i));wk+=l.cd||0}const ta=acts(t).filter(a=>a.s!=='pesas');
-   h+=`<div class="sup ${ta.length||ld.cd>0?'on':''}" style="flex-wrap:wrap"><span class="grow"><span class="t" style="font-weight:600">Deporte y cardio</span><br><span class="small muted">Semana: ${wk} min${ld.st?' · hoy '+Math.round(ld.st).toLocaleString('es-AR')+' pasos':''}${ld.kc?' · '+Math.round(ld.kc)+' kcal':''}</span></span><button class="btn sm" data-a="actadd">Agregar</button>${ta.length?`<div class="chips" style="flex:0 0 100%;margin-top:8px">${ta.map((a,ix)=>`<span class="chip on">${esc(actName(a))} · ${a.m} min${a.k?' · '+Math.round(a.k)+' kcal':''}${a.w?'':` <button data-a="actdel" data-v="${ix}" aria-label="Quitar" style="margin-left:6px;opacity:.7">×</button>`}</span>`).join('')}</div>`:''}</div>`}
+   h+=`<div class="sup ${ta.length||ld.cd>0?'on':''}" style="flex-wrap:wrap"><span class="grow"><span class="t" style="font-weight:600">Deporte y cardio</span><br><span class="small muted">Semana: ${wk} min${ld.st?' · hoy '+Math.round(ld.st).toLocaleString('es-AR')+' pasos':''}${ld.kc?' · '+Math.round(ld.kc)+' kcal':''}</span></span><button class="btn sm" data-a="actadd">Agregar</button><div class="chips" style="flex:0 0 100%;margin-top:8px">${quickActs().map(q=>`<button class="chip" data-a="actquick" data-v="${q[0]}" data-m="${q[1]}">+ ${SPORT[q[0]][0]} ${q[1]} min</button>`).join('')}</div>${ta.length?`<div class="chips" style="flex:0 0 100%;margin-top:8px">${ta.map((a,ix)=>`<span class="chip on">${esc(actName(a))} · ${a.m} min${a.k?' · '+Math.round(a.k)+' kcal':''}${a.w?'':` <button data-a="actdel" data-v="${ix}" aria-label="Quitar" style="margin-left:6px;opacity:.7">×</button>`}</span>`).join('')}</div>`:''}</div>`}
   h+='</div></div>';
   const bw=lastBw();
   h+=`<div class="grid2"><div class="card"><div class="row"><div class="grow"><h3 class="one">Peso</h3><div class="small muted one">${bw!=null?'Último: '+fmtN(bw)+' kg':'En ayunas'}</div></div><input class="inp" id="bw-in" inputmode="decimal" placeholder="kg" value="${ld.bw!=null?fmtN(ld.bw):''}" aria-label="Peso de hoy en kg" style="width:84px;text-align:center"><button class="btn" data-a="bw">Guardar</button></div></div>`;
@@ -1235,7 +1238,7 @@ function calendar(){
 function weekSum(mon){
   const end=addDays(mon,6),ws=workouts().filter(w=>w.date>=mon&&w.date<=end),tr=ws.filter(w=>!w.manual),days=new Set(ws.map(w=>w.date)).size;
   let sets=0,over=0,fat=[],gm=0,gt=0;tr.forEach(w=>{w.ex.forEach(e=>sets+=e.sets.length);over+=w.over||0;if(w.fat)fat.push(w.fat);if(w.goals){gm+=w.goals[0];gt+=w.goals[1]}});
-  let sl=[],cd=0,pr=0,cr=0,bw=[],kc=[],sp={};for(let i=0;i<7;i++){const l=logDay(addDays(mon,i));if(l.sl)sl.push(l.sl);cd+=l.cd||0;if(l.kc)kc.push(l.kc);(l.ac||[]).forEach(a=>{const k=sportOf(a.t||a.n);if(k!=='pesas')sp[SPORT[k][0]]=(sp[SPORT[k][0]]||0)+(a.m||0)});if(l.pr)pr++;if((l.s||{}).creatina)cr++;if(l.bw!=null)bw.push(l.bw)}
+  let sl=[],cd=0,pr=0,cr=0,bw=[],kc=[],sp={};for(let i=0;i<7;i++){const l=logDay(addDays(mon,i));if(l.sw&&l.sl)sl.push(l.sl);cd+=l.cd||0;if(l.kc)kc.push(l.kc);(l.ac||[]).forEach(a=>{const k=sportOf(a.t||a.n);if(k!=='pesas')sp[SPORT[k][0]]=(sp[SPORT[k][0]]||0)+(a.m||0)});if(l.pr)pr++;if((l.s||{}).creatina)cr++;if(l.bw!=null)bw.push(l.bw)}
   const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
   return {days,sets,over,fat:avg(fat),gm,gt,sl:avg(sl),cd,kc:avg(kc),sp,pr,cr,bw:avg(bw),any:days>0||sl.length>0||pr>0||cr>0||cd>0};
 }
@@ -1263,7 +1266,7 @@ function coach(){
   if(avg!=null&&rirs.length>=10&&avg<.5&&fa!=null&&fa>=4)out.push(['warn','Casi todo al fallo y terminás muy cansado. Dejá 1–2 reps en reserva en las primeras series de cada ejercicio y guardá el fallo para la última.']);
   {const xl=extLoad(today());if(xl.leg||xl.arm)out.unshift(['','Hiciste deporte ('+(xl.leg?xl.txt:xl.txtA)+'). Un esfuerzo así se recupera en general dentro de las 24 horas; si hoy o mañana toca esa zona, rendir un poco menos es esperable.'])}
   const wv=weekVol(),low=Object.keys(MUSC).filter(m=>m!=='abs'&&m!=='antebrazo'&&m!=='trapecio'&&wv[m]<5);
-  {const sl=[];for(let i=0;i<7;i++){const l=logDay(addDays(today(),-i));if(l.sl)sl.push(l.sl)}if(sl.length>=4){const m=sl.reduce((a,b)=>a+b,0)/sl.length;if(m<7)out.push(['warn','Venís durmiendo '+fmtN(Math.round(m*10)/10)+' horas de promedio. Con menos de 7 se recupera peor: es lo primero a corregir antes de sumar más entrenamiento.'])}}
+  {const sl=[];for(let i=0;i<7;i++){const l=logDay(addDays(today(),-i));if(l.sw&&l.sl)sl.push(l.sl)}if(sl.length>=4){const m=sl.reduce((a,b)=>a+b,0)/sl.length;if(m<7)out.push(['warn','Venís durmiendo '+fmtN(Math.round(m*10)/10)+' horas de promedio. Con menos de 7 se recupera peor: es lo primero a corregir antes de sumar más entrenamiento.'])}}
   {const pn=[];ids.forEach(id=>{const n=workouts().slice(-12).filter(w=>(w.ex||[]).some(e=>e.exId===id&&e.pain)).length;if(n>=2)pn.push(ex(id).n)});if(pn.length)out.unshift(['warn','Marcaste molestia más de una vez en '+lst(pn)+'. Cambialo por otro ejercicio del mismo músculo; si el dolor sigue, consultá a un profesional.'])}
   if(new Date().getDay()===0&&low.length)out.push(['','Esta semana quedaron con poco trabajo: '+low.map(m=>MUSC[m].toLowerCase()).join(', ')+'.']);
   return out.slice(0,4);
@@ -1306,6 +1309,8 @@ function vProgreso(){
   h+='</div>';
   const bw=bwSeries();
   {const rc=records();if(rc.length)h+=`<div class="card"><h3>Tus récords</h3><div class="list">${rc.slice(0,UI.recAll?99:6).map(r=>`<button class="li" data-a="tech" data-v="${esc(r.id)}"><span class="grow"><span class="t">${esc(ex(r.id).n)}</span><br><span class="small muted">${fmtD(r.d)}</span></span><span class="num" style="font-size:17px;white-space:nowrap">${fmtN(r.q[0])} kg × ${r.q[1]}</span></button>`).join('')}</div>${rc.length>6&&!UI.recAll?'<button class="btn sm ghost" data-a="recall">Ver todos</button>':''}</div>`}
+  {const st=logSeries('st',30),kc=logSeries('kc',30),avg=x=>x.length?Math.round(x.reduce((n,p)=>n+p.v,0)/x.length):null;
+   h+=`<div class="card"><h3>Actividad diaria</h3>${st.length||kc.length?`<div class="tiles" style="grid-template-columns:1fr 1fr"><div class="tile"><div class="num">${avg(st)!=null?avg(st).toLocaleString('es-AR'):'—'}</div><div class="lbl">pasos por día</div></div><div class="tile"><div class="num">${avg(kc)!=null?avg(kc):'—'}</div><div class="lbl">kcal activas por día</div></div></div>${st.length>=2?'<div class="tag">Pasos · últimos 30 días</div>'+lineChart(st,''):''}${kc.length>=2?'<div class="tag">Calorías activas · últimos 30 días</div>'+lineChart(kc,''):''}${st.length<2&&kc.length<2?'<div class="small muted">Con dos días de datos del reloj aparece la curva.</div>':''}`:'<div class="muted">Acá vas a ver los pasos y las calorías que manda el reloj cada noche.</div>'}</div>`}
   {const cw=weekSum(monday(today())).bw,pw=weekSum(addDays(monday(today()),-7)).bw;
   h+=`<div class="card"><h3>Peso corporal</h3>${cw!=null||pw!=null?`<div class="tiles" style="grid-template-columns:1fr 1fr"><div class="tile"><div class="num">${cw!=null?fmtN(Math.round(cw*10)/10):'—'}</div><div class="lbl">media esta semana</div></div><div class="tile"><div class="num">${pw!=null?fmtN(Math.round(pw*10)/10):'—'}</div><div class="lbl">semana pasada</div></div></div>`:''}${bw.length?lineChart(bw.slice(-60),'kg'):'<div class="muted">Cargá tu peso desde Hoy para ver la curva.</div>'}<div class="small muted">Mirá el promedio de la semana, no el número del día: el peso sube y baja solo. Con pesarte una o dos veces por semana, siempre en la misma balanza y a la misma hora, alcanza.</div></div>`;}
   {const b=(S.docs.body&&S.docs.body.m)||[],k=UI.measK||'brazo',pts=b.filter(x=>x[k]!=null).map(x=>({d:x.d,v:x[k]})),l=b[b.length-1],f=b[0];
@@ -1416,6 +1421,8 @@ function shPain(s){
     ${cur>=2?`<div class="banner"><div><b>Con molestia ${cur===3?'fuerte':'media'} lo mejor es cambiar el ejercicio</b> por otro del mismo músculo que no duela. Un dolor que se repite o no afloja en unos días es para verlo con un profesional.</div><button class="btn sm primary" data-a="painswap">Cambiar este ejercicio</button></div>`:''}
     ${cur?'<button class="btn ghost block" data-a="painset" data-v="0">Quitar la marca</button>':''}`};
 }
+function quickActs(){const c={};for(let i=1;i<=60;i++)(logDay(addDays(today(),-i)).ac||[]).forEach(a=>{const k=sportOf(a.t||a.n);if(k==='pesas'||!a.m)return;const m=Math.round(a.m/5)*5,id=k+'|'+m;c[id]=(c[id]||0)+1});
+  const top=Object.keys(c).sort((a,b)=>c[b]-c[a]).slice(0,2).map(x=>x.split('|'));return top.length?top:[['padel','120']]}
 function shActivity(st){
   const k=st.k||'padel';
   return {title:'Agregar actividad',html:`<div class="small muted">Lo que hagas fuera del gimnasio. Con el reloj se carga solo; esto es para anotarlo a mano.</div>
@@ -1462,7 +1469,7 @@ function startDay(i,feel,zone){
   const pr=program(),d=pr.days[i],dl=isDeload();
   const a={start:Date.now(),date:today(),dayIdx:i,dayId:d.id,dayName:d.name,deload:dl,ext:feel||0,extZ:feel?zone:'',note:'',
     ex:d.ex.map(e=>({exId:e.exId,lo:e.lo,hi:e.hi,rest:e.rest||90,ss:e.ss?1:0,tec:e.tec||'',sets:Array.from({length:dl?Math.ceil(e.sets/2):e.sets},()=>({w:'',r:'',done:false}))}))};
-  UI.timer=null;saveTimer();UI.rirAsk=null;UI.openEx=null;UI.warm=0;put('active',a,0);UI.sheet=null;UI.tab='session';render();
+  UI.timer=null;saveTimer();UI.rirAsk=null;UI.openEx=null;UI.warm=-1;put('active',a,0);UI.sheet=null;UI.tab='session';render();
 }
 function finish(fat){
   const a=clone(active());closeRest(a);const prs=[];let sets=0,vol=0,reps=0,gm=0,gt=0;
@@ -1569,6 +1576,7 @@ const ACT={
   painswap(){const ei=UI.sheet.ei,e=active().ex[ei];UI.sheet={t:'pick',title:'Cambiar ejercicio',m:ex(e.exId).m,mode:'swap',ei};renderSheet()},
   measure(){UI.sheet={t:'measure'};renderSheet()},
   actadd(){UI.sheet={t:'activity',k:'padel'};renderSheet()},
+  actquick(el){const k=el.dataset.v,m=+el.dataset.m;if(acts(today()).some(a=>a.s===k&&!a.w&&a.m===m)){toast('Ya lo cargaste hoy');return}setLogDay(today(),o=>{o.ac=(o.ac||[]).concat([{t:k,m}]);o.cd=o.ac.filter(a=>sportOf(a.t||a.n)!=='pesas').reduce((n,a)=>n+(a.m||0),0)});toast(SPORT[k][0]+' '+m+' min guardado');render()},
   actkind(el){const s=UI.sheet;s.m=($('#ac-m')||{}).value;s.kc=($('#ac-k')||{}).value;s.k=el.dataset.v;renderSheet()},
   actday(el){const s=UI.sheet;s.m=($('#ac-m')||{}).value;s.kc=($('#ac-k')||{}).value;s.y=+el.dataset.v;renderSheet()},
   actsave(){const s=UI.sheet,m=Math.round(num($('#ac-m').value)||0),k=Math.round(num($('#ac-k').value)||0);if(!(m>0&&m<=600)){toast('Poné los minutos');return}
@@ -1583,7 +1591,7 @@ const ACT={
   travel(){if(active()){toast('Terminá el entrenamiento en curso primero');return}
     const L=[['bulgara',3,8,12,120],['press_incl_manc',3,8,12,120],['remo_manc',3,8,12,120],['pm_rumano',3,8,12,120],['press_hombros_manc',3,10,12,90],['lat_manc',3,12,15,60],['curl_alt',2,10,12,60],['fondos',2,8,12,90]];
     const a={start:Date.now(),date:today(),dayIdx:null,dayId:'viaje',dayName:'Modo viaje · cuerpo completo',deload:false,note:'',ex:L.map(([id,n,lo,hi,rest])=>({exId:id,lo,hi,rest,ss:0,tec:'',sets:Array.from({length:n},()=>({w:'',r:'',done:false}))}))};
-    UI.timer=null;saveTimer();UI.rirAsk=null;UI.openEx=null;UI.warm=0;put('active',a,0);UI.sheet=null;UI.tab='session';render()},
+    UI.timer=null;saveTimer();UI.rirAsk=null;UI.openEx=null;UI.warm=-1;put('active',a,0);UI.sheet=null;UI.tab='session';render()},
   renew(){UI.sheet={t:'renew'};renderSheet()},
   renewok(){const p=clone(profile());p.gym={name:$('#gy-name').value.trim(),until:$('#gy-until').value||null};put('profile',p);UI.sheet=null;toast('Pase actualizado');render()},
   habpr(){setLogDay(today(),d=>{if(d.pr)delete d.pr;else d.pr=1});render()},

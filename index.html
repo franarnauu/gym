@@ -1131,7 +1131,7 @@ function vHoy(){
   if(!ph&&pr&&!act&&wk>=7&&!isDeload())h+=`<div class="banner"><div><b>Llevás ${wk} semanas con esta rutina.</b> Si venís cansado o estancado, una semana de descarga (mitad de series, lejos del fallo) ayuda a recuperar. Después de 8 a 12 semanas conviene generar una rutina nueva.</div><div class="row wrapx"><button class="btn sm" data-a="deload">Hacer descarga esta semana</button><button class="btn sm" data-a="genopen">Generar rutina nueva</button></div></div>`;
   h+=`<div class="grid2"><div class="card"><div class="row between"><div><h3>Esta semana</h3><div class="small muted">${(()=>{const rem=goal-wc,left=7-(new Date().getDay()+6)%7-(attended()[t]?1:0);return rem<=0?'Objetivo de '+goal+' días cumplido':left>=rem?'Faltan '+rem+' · quedan '+left+(left===1?' día':' días'):'Llegás a '+(wc+left)+' como máximo'})()}</div></div>${ring(wc,goal)}</div>${weekStrip()}
     ${!attended()[t]&&!act?'<button class="lnk" data-a="manual">Fui hoy y no lo anoté</button>':''}</div>`;
-  h+=`<div class="card"><div class="row between"><h3>Hábitos de hoy</h3><button class="btn sm ghost" data-a="tab" data-v="perfil">Editar</button></div>`;
+  h+=`<div class="card"><div class="row between"><h3>Hábitos de hoy</h3><div class="row"><button class="btn sm ghost" data-a="yday">Ayer</button><button class="btn sm ghost" data-a="tab" data-v="perfil">Editar</button></div></div>`;
   supps().forEach(s=>{const on=(ld.s||{})[s.id],st=suppStreak(s.id);h+=`<button class="sup ${on?'on':''}" data-a="supp" data-v="${esc(s.id)}" aria-pressed="${on?'true':'false'}"><span class="box">${on?ICON.check:''}</span><span class="grow"><span class="t" style="font-weight:600">${esc(s.name)}</span> <span class="muted" style="white-space:nowrap">${esc(s.dose||'')}</span></span><span class="num stk">${st?st+' d':''}</span></button>`});
   {const st=habStreak(d=>d.pr);h+=`<button class="sup ${ld.pr?'on':''}" data-a="habpr" aria-pressed="${ld.pr?'true':'false'}"><span class="box">${ld.pr?ICON.check:''}</span><span class="grow"><span class="t" style="font-weight:600">Proteína</span><br><span class="small muted">En cada comida de hoy</span></span><span class="num stk">${st?st+' d':''}</span></button>`}
   h+=slRow();
@@ -1419,8 +1419,8 @@ function countUp(root){if(STILL)return;root.querySelectorAll('.tile .num').forEa
 function renderSheet(){
   const el=$('#sheet'),s=UI.sheet;
   if(!s){el.innerHTML='';return}
-  const body={tech:shTech,pick:shPick,editday:shEditDay,gen:shGen,confirm:shConfirm,summary:shSummary,pain:shPain,measure:shMeasure,activity:shActivity,feel:shFeel,go:shGo,exopts:shExOpts,photo:shPhoto,phase:shPhase,fatigue:shFatigue,renew:shRenew,workout:shWorkout,pickday:shPickDay}[s.t](s);
-  el.innerHTML=`<div class="ov ${({confirm:1,pain:1,feel:1,fatigue:1,go:1,exopts:1,renew:1,activity:1})[s.t]?'mid':''}" data-a="ovclose"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(body.title)}"><div class="sh"><h2>${esc(body.title)}</h2><button class="x" data-a="close" aria-label="Cerrar">${ICON.x}</button></div><div class="sb">${body.html}</div></div></div>`;
+  const body={tech:shTech,pick:shPick,editday:shEditDay,gen:shGen,confirm:shConfirm,summary:shSummary,pain:shPain,measure:shMeasure,activity:shActivity,yday:shYday,feel:shFeel,go:shGo,exopts:shExOpts,photo:shPhoto,phase:shPhase,fatigue:shFatigue,renew:shRenew,workout:shWorkout,pickday:shPickDay}[s.t](s);
+  el.innerHTML=`<div class="ov ${({confirm:1,pain:1,feel:1,fatigue:1,go:1,exopts:1,renew:1,activity:1,yday:1})[s.t]?'mid':''}" data-a="ovclose"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(body.title)}"><div class="sh"><h2>${esc(body.title)}</h2><button class="x" data-a="close" aria-label="Cerrar">${ICON.x}</button></div><div class="sb">${body.html}</div></div></div>`;
   startFig();
 }
 function shTech(s){
@@ -1490,6 +1490,12 @@ function shGo(st){const d=program().days[st.i],n=d.ex.reduce((x,e)=>x+e.sets,0),
     <div class="row"><button class="btn grow" data-a="close">Todavía no</button><button class="btn grow primary" data-a="go">Empezar</button></div>`}}
 function shExOpts(st){const e=active().ex[st.ei],o=(f,t,d,c)=>`<button class="li" data-a="exopt" data-v="${f}" data-e="${st.ei}"><span class="grow"><span class="t" ${c?'style="color:var(--bad)"':''}>${t}</span><br><span class="small muted">${d}</span></span><span class="muted">›</span></button>`;
   return {title:dnm(ex(e.exId).n)[0],html:`<div class="list">${o('addset','Agregar una serie','Queda con el mismo peso que la última')}${e.sets.length>1?o('delset','Quitar la última serie','Ahora tiene '+e.sets.length):''}${o('swap','Cambiar el ejercicio','Por otro del mismo músculo')}${o('pain',e.pain?'Cambiar la molestia marcada':'Me molesta o me duele','Queda anotado para la próxima vez',1)}</div>`}}
+function shYday(){const y=addDays(today(),-1),ld=logDay(y),ta=acts(y).filter(a=>a.s!=='pesas');
+  return {title:'Ayer, '+fmtD(y,{weekday:'long',day:'numeric'}),html:`<div class="small muted">Marcá lo que hiciste y te olvidaste de anotar.</div>
+    ${supps().map(s=>{const on=(ld.s||{})[s.id];return `<button class="sup ${on?'on':''}" data-a="suppy" data-v="${esc(s.id)}" aria-pressed="${on?'true':'false'}"><span class="box">${on?ICON.check:''}</span><span class="grow"><span class="t" style="font-weight:600">${esc(s.name)}</span> <span class="muted">${esc(s.dose||'')}</span></span></button>`}).join('')}
+    <button class="sup ${ld.pr?'on':''}" data-a="habpry" aria-pressed="${ld.pr?'true':'false'}"><span class="box">${ld.pr?ICON.check:''}</span><span class="grow"><span class="t" style="font-weight:600">Proteína</span><br><span class="small muted">En cada comida</span></span></button>
+    <div class="sup" style="flex-wrap:wrap"><span class="grow"><span class="t" style="font-weight:600">Deporte y cardio</span><br><span class="small muted">${ta.length?esc(ta.map(a=>actName(a)+' '+a.m+' min'+(a.k?' · '+Math.round(a.k)+' kcal':'')).join(' · ')):'Nada anotado'}</span></span><button class="btn sm" data-a="actyday">Agregar</button></div>
+    <button class="btn primary block" data-a="close">Listo</button>`}}
 function shFeel(st){const z=ZN[st.z],xl=extLoad(today());
   return {title:'¿Cómo estás hoy?',html:`<div class="small muted">Hiciste deporte (${esc(st.z==='p'?xl.txt:xl.txtA)}) y hoy trabajás ${z[0]}. ¿Cómo sentís ${z[1]}?</div>
     <div class="list"><button class="li" data-a="feel" data-v="0"><span class="grow"><span class="t">Bien, sin cansancio</span><br><span class="small muted">Entrenamiento normal</span></span><span class="muted">›</span></button>
@@ -1644,7 +1650,7 @@ const ACT={
   actkind(el){const s=UI.sheet;s.m=($('#ac-m')||{}).value;s.kc=($('#ac-k')||{}).value;s.k=el.dataset.v;renderSheet()},
   actday(el){const s=UI.sheet;s.m=($('#ac-m')||{}).value;s.kc=($('#ac-k')||{}).value;s.y=+el.dataset.v;renderSheet()},
   actsave(){const s=UI.sheet,m=Math.round(num($('#ac-m').value)||0),k=Math.round(num($('#ac-k').value)||0);if(!(m>0&&m<=600)){toast('Poné los minutos');return}
-    const d=s.y?addDays(today(),-1):today();setLogDay(d,o=>{o.ac=(o.ac||[]).concat([Object.assign({t:s.k,m},k>0?{k}:{})]);o.cd=o.ac.filter(a=>sportOf(a.t||a.n)!=='pesas').reduce((n,a)=>n+(a.m||0),0)});UI.sheet=null;renderSheet();toast('Actividad guardada');render()},
+    const d=s.y?addDays(today(),-1):today();setLogDay(d,o=>{o.ac=(o.ac||[]).concat([Object.assign({t:s.k,m},k>0?{k}:{})]);o.cd=o.ac.filter(a=>sportOf(a.t||a.n)!=='pesas').reduce((n,a)=>n+(a.m||0),0)});UI.sheet=s.back?{t:'yday'}:null;renderSheet();toast('Actividad guardada');render()},
   actdel(el){const ix=+el.dataset.v;setLogDay(today(),o=>{const vis=(o.ac||[]).map((a,i)=>[a,i]).filter(x=>sportOf(x[0].t||x[0].n)!=='pesas');if(!vis[ix])return;o.ac.splice(vis[ix][1],1);o.cd=o.ac.filter(a=>sportOf(a.t||a.n)!=='pesas').reduce((n,a)=>n+(a.m||0),0);if(!o.ac.length)delete o.ac;if(!o.cd)delete o.cd});render()},
   chkdone(el){const p=clone(profile());p.chk=Object.assign({},p.chk,{done:el.dataset.v});put('profile',p);render()},
   measave(){const r={d:today()};let n=0;MEAS.forEach(([k])=>{const v=num($('#ms-'+k).value);if(v&&v>5&&v<300){r[k]=v;n++}});const bwv=num($('#ms-bw').value);if(bwv&&bwv>=30&&bwv<=250)setLogDay(today(),d=>d.bw=bwv);if(!n&&!bwv){toast('Cargá al menos una medida');return}if(!n){UI.sheet=null;toast('Peso guardado');render();return}
@@ -1660,6 +1666,10 @@ const ACT={
   renewok(){const p=clone(profile());p.gym={name:$('#gy-name').value.trim(),until:$('#gy-until').value||null};put('profile',p);UI.sheet=null;toast('Pase actualizado');render()},
   habpr(){setLogDay(today(),d=>{if(d.pr)delete d.pr;else d.pr=1});render()},
   hab(el){const k=el.dataset.k,v=+el.dataset.v;setLogDay(today(),d=>{let x=d[k];if(k==='sl'){x=x?x+v:(v>0?7:6.5);x=Math.max(0,Math.min(14,x))}else{x=Math.max(0,Math.min(300,(x||0)+v))}if(x)d[k]=x;else delete d[k]});const r=$('#sl-row');if(k==='sl'&&r){r.outerHTML=slRow();return}render()},
+  yday(){UI.sheet={t:'yday'};renderSheet()},
+  suppy(el){const id=el.dataset.v;setLogDay(addDays(today(),-1),d=>{d.s=d.s||{};if(d.s[id])delete d.s[id];else d.s[id]=1});renderSheet();render()},
+  habpry(){setLogDay(addDays(today(),-1),d=>{if(d.pr)delete d.pr;else d.pr=1});renderSheet();render()},
+  actyday(){UI.sheet={t:'activity',k:'padel',y:1,back:1};renderSheet()},
   supp(el){const id=el.dataset.v;setLogDay(today(),d=>{d.s=d.s||{};if(d.s[id])delete d.s[id];else d.s[id]=1});render()},
   bw(){const v=num($('#bw-in').value);if(!v||v<30||v>250){toast('Ingresá un peso válido en kg');return}setLogDay(today(),d=>d.bw=v);toast('Peso guardado');render()},
   manual(){const t=Date.now();put('w_'+t,{date:today(),start:t,end:t,dayName:'Asistencia',manual:true,ex:[]},0);toast('Asistencia registrada');render()},
